@@ -58,15 +58,15 @@ def star_vertices() -> list[tuple[float, float]]:
     outer = [
         polar(90, 312),    # верхний луч
         polar(17, 348),    # правая «рука»
-        polar(-62, 340),   # правое «бедро»
-        polar(242, 340),   # левое «бедро»
+        polar(-56, 358),   # правый нижний угол
+        polar(236, 358),   # левый нижний угол
         polar(163, 348),   # левая «рука»
     ]
     inner = [
         polar(53, 170),
-        polar(-25, 242),
-        polar(-90, 262),   # неглубокая выемка между ног
-        polar(205, 242),
+        polar(-24, 196),
+        polar(-90, 276),   # неглубокая выемка между ног
+        polar(204, 196),
         polar(127, 170),
     ]
     pts: list[tuple[float, float]] = []
@@ -215,8 +215,8 @@ def star_mask(size) -> Image.Image:
     radii = []
     for i in range(10):
         radii.append(52 if i % 2 == 0 else 48)   # внешние углы / внутренние
-    radii[4] = radii[6] = 96                     # «бёдра» скруглены сильнее
-    radii[5] = 70                                # выемка между ног — мягкая
+    radii[4] = radii[6] = 64                     # нижние углы — мягкие, но видны
+    radii[5] = 52                                # выемка между ног — мягкая
     path = round_polygon(pts, radii)
 
     mask = Image.new("L", size, 0)
