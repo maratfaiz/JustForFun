@@ -35,6 +35,21 @@ python3 cute_star.py --out star_wave.png --pose wave
 добавится суффикс размера), `--bg white|none`, `--crop`, `--no-shadow`,
 `--limb-depth`, `--pose idle|wave`.
 
+## Эмоции
+
+Десять готовых состояний — поза рук, форма глаз/бровей/рта и реквизит
+(сердечки, zzz, искры, слеза, вопрос) задаются одним флагом:
+
+```bash
+python3 cute_star.py --out star.png --emotion joy
+python3 make_emotions.py --export emotions   # лист emotions.png + PNG на каждую
+```
+
+`greeting`, `joy`, `care`, `calm`, `determined`, `curious`, `excited`,
+`sleepy`, `sad`, `wink` — см. `emotions.png`.
+
+![эмоции](emotions.png)
+
 Как устроен персонаж и что где менять — `MASCOT.md` и схема `anatomy.png`
 (перерисовывается через `python3 make_anatomy.py`).
 

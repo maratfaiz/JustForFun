@@ -100,6 +100,22 @@ draw_face(img, mask, pose)
    центр «ладони», их нужно двигать вместе с рукой);
 3. `draw_face()` берёт более широкую улыбку.
 
+### Эмоции
+
+`EMOTIONS` — словарь: имя → `pose`, `eyes`, `brows`, `mouth`, `props`,
+`blush`, плюс `title`/`desc` для листа эмоций. `render(emotion=...)`
+разворачивает его в параметры лица и позы.
+
+* глаза: `open`, `wide`, `closed` (счастливый прищур), `sleepy`, `wink`,
+  `sparkle`;
+* брови: `normal`, `raised`, `sad` (домиком), `angry`, `none`;
+* рот: `smile`, `wide`, `open`, `small`, `sad`;
+* реквизит (`draw_props`): `sparkles`, `hearts`, `zzz`, `tear`, `question`;
+* позы рук: `idle`, `wave` (одна вверх), `cheer` (обе вверх).
+
+Новая эмоция — это запись в `EMOTIONS`, отдельного кода обычно не нужно.
+Лист эмоций собирает `make_emotions.py`.
+
 ### Рецепт новой позы
 
 1. Добавить кортеж вроде `ARM_UP` с нужными `dx, cy, w, h, tilt`.

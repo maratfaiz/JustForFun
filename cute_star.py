@@ -34,6 +34,8 @@ LIMB_DEPTH = {"none": (0, 0), "soft": (70, 110),
 BLUSH = (246, 160, 74)
 GLOSS = (255, 255, 255)
 MOTION = (240, 178, 24)        # штрихи движения у машущей руки
+HEART = (240, 122, 138)        # сердечки у «заботливой» эмоции
+TEAR = (126, 186, 240)         # слеза
 
 # центр звезды
 CX, CY = 620.0, 566.0
@@ -220,11 +222,12 @@ def limb_mask(size, pose: str = "idle") -> Image.Image:
     capsule(ImageDraw.Draw(m), CX - FOOT_DX, FOOT_CY, FOOT_W, FOOT_H, 255)
     capsule(ImageDraw.Draw(m), CX + FOOT_DX, FOOT_CY, FOOT_W, FOOT_H, 255)
 
-    dx, cy, w, h, tilt = ARM_DOWN
-    rotated_capsule(m, CX - dx, cy, w, h, -tilt)          # левая рука всегда внизу
+    left = ARM_UP if pose == "cheer" else ARM_DOWN
+    right = ARM_UP if pose in ("wave", "cheer") else ARM_DOWN
 
-    if pose == "wave":
-        dx, cy, w, h, tilt = ARM_UP
+    dx, cy, w, h, tilt = left
+    rotated_capsule(m, CX - dx, cy, w, h, -tilt)
+    dx, cy, w, h, tilt = right
     rotated_capsule(m, CX + dx, cy, w, h, tilt)
     return m
 
@@ -294,7 +297,88 @@ def draw_limb_depth(img: Image.Image, body: Image.Image, limbs: Image.Image,
         tint(img, LIMB_SHADE, contact, ImageChops.multiply(edge, visible))
 
 
-def draw_face(img: Image.Image, mask: Image.Image, pose: str = "idle") -> None:
+EYE_X = (533, 722)          # центры глаз
+EYE_CY = 598                # середина глаза по вертикали
+
+
+def stroke_arc(d, box, start, end, color, width, caps=True):
+    """Дуга с круглыми концами. PIL рисует толщину внутрь bbox, поэтому
+    заглушки ставим по радиусу средней линии."""
+    d.arc(sbox(box), start, end, fill=color + (255,), width=int(s(width)))
+    if not caps:
+        return
+    cx, cy = (box[0] + box[2]) / 2, (box[1] + box[3]) / 2
+    rx, ry = (box[2] - box[0]) / 2 - width / 2, (box[3] - box[1]) / 2 - width / 2
+    r = width / 2
+    for a in (start, end):
+        x = cx + rx * math.cos(math.radians(a))
+        y = cy + ry * math.sin(math.radians(a))
+        d.ellipse(sbox([x - r, y - r, x + r, y + r]), fill=color + (255,))
+
+
+def draw_eyes(d, kind: str) -> None:
+    for i, ex in enumerate(EYE_X):
+        closed = kind == "closed" or (kind == "wink" and i == 0)
+        if closed:                                   # счастливый прищур ^^
+            stroke_arc(d, [ex - 34, EYE_CY - 34, ex + 34, EYE_CY + 24],
+                       200, 340, EYE, 13)
+            continue
+        if kind == "sleepy":                         # спокойно прикрытые глаза
+            stroke_arc(d, [ex - 34, EYE_CY - 26, ex + 34, EYE_CY + 30],
+                       20, 160, EYE, 13)
+            continue
+
+        w, h = (34, 50) if kind == "wide" else (29, 42)
+        d.rounded_rectangle(sbox([ex - w, EYE_CY - h, ex + w, EYE_CY + h]),
+                            radius=s(w), fill=EYE + (255,))
+        gx = ex + (6 if i == 0 else -6)              # блик смотрит к переносице
+        gy = EYE_CY - h + 12
+        d.ellipse(sbox([gx, gy, gx + 22, gy + 24]), fill=(255, 255, 255, 255))
+        if kind == "sparkle":                        # второй блик — «горят глаза»
+            d.ellipse(sbox([gx - 12, gy + 40, gx - 1, gy + 52]),
+                      fill=(255, 255, 255, 255))
+
+
+def draw_brows(d, kind: str) -> None:
+    # «домиком» и «сердито» — прямые штрихи с наклоном: у sad внутренние
+    # концы выше внешних, у angry — ниже
+    if kind in ("sad", "angry"):
+        lift = 24 if kind == "sad" else -24
+        for i, (x0, x1) in enumerate(((486, 566), (678, 758))):
+            inner_y, outer_y = 498 - lift, 498 + lift
+            p0 = (x0, outer_y if i == 0 else inner_y)
+            p1 = (x1, inner_y if i == 0 else outer_y)
+            d.line(sbox([p0[0], p0[1], p1[0], p1[1]]),
+                   fill=BROW + (255,), width=int(s(14)))
+            for x, y in (p0, p1):
+                d.ellipse(sbox([x - 7, y - 7, x + 7, y + 7]), fill=BROW + (255,))
+        return
+
+    dy = -26 if kind == "raised" else 0
+    for i, (x0, x1) in enumerate(((480, 584), (660, 764))):
+        box = [x0, 480 + dy, x1, 560 + dy]
+        span = (205, 264) if i == 0 else (276, 335)
+        stroke_arc(d, box, *span, BROW, 14)
+
+
+def draw_mouth(d, kind: str) -> None:
+    if kind == "open":                               # радостный открытый рот
+        d.ellipse(sbox([586, 620, 670, 690]), fill=BROW + (255,))
+        d.chord(sbox([600, 646, 656, 692]), 0, 180, fill=(232, 122, 132, 255))
+        return
+    if kind == "small":
+        d.ellipse(sbox([608, 634, 640, 668]), fill=BROW + (255,))
+        return
+    if kind == "sad":
+        stroke_arc(d, [592, 640, 664, 692], 205, 335, BROW, 12)
+        return
+    box = [584, 612, 672, 678] if kind == "wide" else [592, 616, 664, 672]
+    stroke_arc(d, box, 25, 155, BROW, 12)
+
+
+def draw_face(img: Image.Image, mask: Image.Image, pose: str = "idle",
+              eyes: str = "open", brows: str = "normal",
+              mouth: str | None = None, blush: int = 175) -> None:
     # румянец — размытый, поэтому отдельным слоем; обрезаем по силуэту тела,
     # чтобы он не вылезал на фон
     def paint_blush(d):
@@ -302,37 +386,67 @@ def draw_face(img: Image.Image, mask: Image.Image, pose: str = "idle") -> None:
         d.ellipse(sbox([718, 628, 798, 684]), fill=255)
 
     img.alpha_composite(
-        soft_layer(img.size, BLUSH, 175, paint_blush, blur=s(11), mask=mask)
+        soft_layer(img.size, BLUSH, blush, paint_blush, blur=s(11), mask=mask)
     )
 
     layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
     d = ImageDraw.Draw(layer)
 
-    # глаза
-    for ex in (533, 722):
-        d.rounded_rectangle(sbox([ex - 29, 556, ex + 29, 640]),
-                            radius=s(29), fill=EYE + (255,))
-    # блики в глазах смотрят к переносице
-    d.ellipse(sbox([539, 566, 561, 590]), fill=(255, 255, 255, 255))
-    d.ellipse(sbox([700, 564, 722, 588]), fill=(255, 255, 255, 255))
+    draw_eyes(d, eyes)
+    if brows != "none":
+        draw_brows(d, brows)
+    draw_mouth(d, mouth or ("wide" if pose == "wave" else "smile"))
 
-    # брови
-    bw = int(s(14))
-    d.arc(sbox([480, 480, 584, 560]), 205, 264, fill=BROW + (255,), width=bw)
-    d.arc(sbox([660, 480, 764, 560]), 276, 335, fill=BROW + (255,), width=bw)
-    # PIL рисует дугу толщиной внутрь bbox, поэтому закругления на концах
-    # ставим по радиусу средней линии (rx - bw/2, ry - bw/2)
-    for x, y in ((491.2, 506.1), (527.3, 487.2), (716.7, 487.2), (752.8, 506.1)):
-        d.ellipse(sbox([x - 7, y - 7, x + 7, y + 7]), fill=BROW + (255,))
+    img.alpha_composite(layer)
 
-    # улыбка: приветствие — шире и радостнее
-    if pose == "wave":
-        box, ends = [584, 612, 672, 678], ((594.4, 654.9), (661.6, 654.9))
-    else:
-        box, ends = [592, 616, 664, 672], ((600.8, 653.3), (655.2, 653.3))
-    d.arc(sbox(box), 25, 155, fill=BROW + (255,), width=int(s(12)))
-    for x, y in ends:
-        d.ellipse(sbox([x - 6, y - 6, x + 6, y + 6]), fill=BROW + (255,))
+
+def draw_heart(d, cx, cy, size, color) -> None:
+    r = size / 2
+    d.ellipse(sbox([cx - r, cy - r * 0.9, cx, cy + r * 0.2]), fill=color + (255,))
+    d.ellipse(sbox([cx, cy - r * 0.9, cx + r, cy + r * 0.2]), fill=color + (255,))
+    d.polygon([*sbox([cx - r * 0.96, cy - r * 0.1]),
+               *sbox([cx + r * 0.96, cy - r * 0.1]),
+               *sbox([cx, cy + r])], fill=color + (255,))
+
+
+def draw_sparkle(d, cx, cy, size, color) -> None:
+    """Четырёхлучевая искорка."""
+    a, b = size, size * 0.22
+    d.polygon([*sbox([cx, cy - a]), *sbox([cx + b, cy - b]),
+               *sbox([cx + a, cy]), *sbox([cx + b, cy + b]),
+               *sbox([cx, cy + a]), *sbox([cx - b, cy + b]),
+               *sbox([cx - a, cy]), *sbox([cx - b, cy - b])], fill=color + (255,))
+
+
+def draw_props(img: Image.Image, props) -> None:
+    """Реквизит эмоций: искры, сердечки, zzz, слеза, вопрос."""
+    layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+
+    for prop in props:
+        if prop == "sparkles":
+            for cx, cy, size in ((352, 300, 40), (905, 250, 30), (975, 372, 22)):
+                draw_sparkle(d, cx, cy, size, MOTION)
+        elif prop == "hearts":
+            for cx, cy, size in ((372, 424, 74), (880, 372, 58), (930, 520, 42)):
+                draw_heart(d, cx, cy, size, HEART)
+        elif prop == "zzz":
+            x, y, size = 880, 380, 46
+            for i in range(3):
+                k = size * (1 - i * 0.22)
+                zx, zy = x + i * 62, y - i * 78
+                d.line(sbox([zx, zy, zx + k, zy, zx, zy + k, zx + k, zy + k]),
+                       fill=MOTION + (255,), width=int(s(11)), joint="curve")
+                size = k
+        elif prop == "tear":
+            d.ellipse(sbox([742, 664, 786, 726]), fill=TEAR + (235,))
+            d.polygon([*sbox([742, 690]), *sbox([786, 690]),
+                       *sbox([764, 638])], fill=TEAR + (235,))
+        elif prop == "question":
+            stroke_arc(d, [846, 236, 946, 336], 175, 20, MOTION, 15)
+            d.line(sbox([939, 303, 900, 352]), fill=MOTION + (255,),
+                   width=int(s(15)))
+            d.ellipse(sbox([888, 374, 914, 400]), fill=MOTION + (255,))
 
     img.alpha_composite(layer)
 
@@ -346,6 +460,60 @@ def draw_motion_lines(img: Image.Image) -> None:
         d.arc(sbox([hx - r, hy - r, hx + r, hy + r]), 292, 356,
               fill=MOTION + (255,), width=int(s(13)))
     img.alpha_composite(layer)
+
+
+# --- эмоции ------------------------------------------------------------------
+# Каждая эмоция — это набор: поза рук, форма глаз/бровей/рта и реквизит.
+# title/desc используются на листе эмоций (make_emotions.py).
+
+EMOTIONS = {
+    "greeting": dict(
+        pose="wave", eyes="open", brows="normal", mouth="wide",
+        title="Приветствие",
+        desc="Машет рукой и встречает\nтебя в начале дня."),
+    "joy": dict(
+        pose="cheer", eyes="closed", brows="none", mouth="open",
+        props=("sparkles",),
+        title="Радость",
+        desc="Празднует твой прогресс\nи маленькие победы."),
+    "care": dict(
+        pose="idle", eyes="closed", brows="none", mouth="smile",
+        props=("hearts",), blush=210,
+        title="Забота",
+        desc="Напоминает о любви к себе\nи бережности к чувствам."),
+    "calm": dict(
+        pose="idle", eyes="sleepy", brows="normal", mouth="smile",
+        title="Спокойствие",
+        desc="Помогает выдохнуть\nи вернуть равновесие."),
+    "determined": dict(
+        pose="cheer", eyes="open", brows="angry", mouth="wide",
+        title="Решимость",
+        desc="Поддерживает, когда нужно\nвыйти из зоны комфорта."),
+    "curious": dict(
+        pose="idle", eyes="wide", brows="raised", mouth="small",
+        props=("question",),
+        title="Любопытство",
+        desc="Задаёт вопросы и помогает\nлучше узнать себя."),
+    "excited": dict(
+        pose="cheer", eyes="sparkle", brows="raised", mouth="open",
+        props=("sparkles",),
+        title="Восторг",
+        desc="Заряжает энергией\nперед новым шагом."),
+    "sleepy": dict(
+        pose="idle", eyes="sleepy", brows="normal", mouth="small",
+        props=("zzz",),
+        title="Сон",
+        desc="Провожает вечернюю практику\nи напоминает об отдыхе."),
+    "sad": dict(
+        pose="idle", eyes="open", brows="sad", mouth="sad",
+        props=("tear",),
+        title="Грусть",
+        desc="Разделяет тяжёлый день —\nгрустить тоже нормально."),
+    "wink": dict(
+        pose="idle", eyes="wink", brows="normal", mouth="wide",
+        title="Подмигивание",
+        desc="Лёгкая похвала и мягкая\nподдержка без пафоса."),
+}
 
 
 def square_bbox(img: Image.Image, pad: float = 0.06) -> tuple[int, int, int, int]:
@@ -363,7 +531,16 @@ def square_bbox(img: Image.Image, pad: float = 0.06) -> tuple[int, int, int, int
 def render(size: int = CANVAS, transparent: bool = False,
            shadow: bool = True, crop: bool = False,
            limb_tone: int = 110, limb_contact: int = 130,
-           pose: str = "idle") -> Image.Image:
+           pose: str = "idle", emotion: str | None = None) -> Image.Image:
+    face = dict(eyes="open", brows="normal", mouth=None, blush=175)
+    props: tuple[str, ...] = ()
+    if emotion:
+        cfg = EMOTIONS[emotion]
+        pose = cfg.get("pose", pose)
+        props = cfg.get("props", ())
+        face.update({k: cfg[k] for k in ("eyes", "brows", "mouth", "blush")
+                     if k in cfg})
+
     work = (CANVAS * SS, CANVAS * SS)
     img = Image.new("RGBA", work, BG + (0,))    # рисуем на прозрачном холсте,
                                                 # фон подкладываем в конце
@@ -375,9 +552,11 @@ def render(size: int = CANVAS, transparent: bool = False,
         draw_shadow(img)
     draw_body(img, mask)
     draw_limb_depth(img, body, limbs, limb_tone, limb_contact)
-    draw_face(img, mask, pose)
+    draw_face(img, mask, pose, **face)
     if pose == "wave":
         draw_motion_lines(img)
+    if props:
+        draw_props(img, props)
 
     if crop:
         img = img.crop(square_bbox(img))
@@ -406,8 +585,10 @@ def main() -> None:
                     help="без тени на полу")
     ap.add_argument("--limb-depth", choices=tuple(LIMB_DEPTH), default="medium",
                     help="насколько сильно руки-ноги отделяются от корпуса")
-    ap.add_argument("--pose", choices=("idle", "wave"), default="idle",
-                    help="поза: стоит или машет в знак приветствия")
+    ap.add_argument("--pose", choices=("idle", "wave", "cheer"), default="idle",
+                    help="поза рук: стоит, машет, обе руки вверх")
+    ap.add_argument("--emotion", choices=tuple(EMOTIONS), default=None,
+                    help="готовая эмоция (задаёт позу, лицо и реквизит)")
     args = ap.parse_args()
 
     sizes = [int(v) for v in args.size.split(",") if v.strip()]
@@ -420,7 +601,7 @@ def main() -> None:
         tone, contact = LIMB_DEPTH[args.limb_depth]
         render(size, transparent=args.bg == "none", shadow=args.shadow,
                crop=args.crop, limb_tone=tone, limb_contact=contact,
-               pose=args.pose).save(path)
+               pose=args.pose, emotion=args.emotion).save(path)
         print(f"Готово: {path} ({size}x{size})")
 
 
