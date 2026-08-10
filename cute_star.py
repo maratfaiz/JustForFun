@@ -23,7 +23,7 @@ SS = 3                 # коэффициент суперсэмплинга
 BG = (255, 255, 255)
 BODY_TOP = (255, 214, 58)      # жёлтый у верхнего луча
 BODY_BOTTOM = (248, 186, 8)    # жёлтый у нижних лучей
-LIMB = (250, 193, 16)          # руки-ноги чуть темнее корпуса
+LIMB = (245, 182, 10)          # руки-ноги чуть темнее корпуса
 SHADOW = (203, 201, 223)
 EYE = (32, 27, 28)
 BROW = (150, 86, 18)
@@ -53,21 +53,21 @@ def polar(angle_deg: float, radius: float) -> tuple[float, float]:
 
 
 def star_vertices() -> list[tuple[float, float]]:
-    """Вершины пятиконечной звезды: пропорции подогнаны под персонажа —
-    широкие «бёдра» снизу и неглубокая выемка между ними."""
+    """Вершины пятиконечной звезды. Внутренние вершины лежат близко к центру,
+    поэтому все пять лучей — включая два нижних — читаются как лучи."""
     outer = [
-        polar(90, 312),    # верхний луч
-        polar(17, 348),    # правая «рука»
-        polar(-62, 340),   # правое «бедро»
-        polar(242, 340),   # левое «бедро»
-        polar(163, 348),   # левая «рука»
+        polar(90, 330),    # верхний луч
+        polar(18, 346),    # правый боковой луч
+        polar(-47, 360),   # правый нижний луч
+        polar(227, 360),   # левый нижний луч
+        polar(162, 346),   # левый боковой луч
     ]
     inner = [
-        polar(53, 170),
-        polar(-25, 242),
-        polar(-90, 262),   # неглубокая выемка между ног
-        polar(205, 242),
-        polar(127, 170),
+        polar(54, 152),
+        polar(-19, 146),
+        polar(-90, 150),   # выемка между нижними лучами
+        polar(199, 146),
+        polar(126, 152),
     ]
     pts: list[tuple[float, float]] = []
     for i in range(5):
@@ -193,20 +193,20 @@ def vertical_gradient(size, top_color, bottom_color) -> Image.Image:
 def draw_shadow(img: Image.Image) -> None:
     img.alpha_composite(soft_layer(
         img.size, SHADOW, 255,
-        lambda d: d.ellipse(sbox([424, 888, 848, 944]), fill=255),
+        lambda d: d.ellipse(sbox([440, 856, 814, 910]), fill=255),
         blur=s(10),
     ))
 
 
 def draw_limbs(img: Image.Image) -> None:
     """Ручки-культяпки по бокам и две ножки снизу (рисуются под корпусом)."""
-    rotated_capsule(img, 404, 742, 76, 150, LIMB + (255,), -10)
-    rotated_capsule(img, 836, 742, 76, 150, LIMB + (255,), 10)
+    rotated_capsule(img, 428, 616, 66, 132, LIMB + (255,), -10)
+    rotated_capsule(img, 812, 616, 66, 132, LIMB + (255,), 10)
 
     layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
     d = ImageDraw.Draw(layer)
-    capsule(d, 522, 852, 112, 130, LIMB + (255,))
-    capsule(d, 728, 852, 128, 130, LIMB + (255,))
+    capsule(d, 556, 790, 92, 150, LIMB + (255,))
+    capsule(d, 684, 790, 92, 150, LIMB + (255,))
     img.alpha_composite(layer)
 
 
@@ -214,9 +214,9 @@ def star_mask(size) -> Image.Image:
     pts = star_vertices()
     radii = []
     for i in range(10):
-        radii.append(52 if i % 2 == 0 else 48)   # внешние углы / внутренние
-    radii[4] = radii[6] = 96                     # «бёдра» скруглены сильнее
-    radii[5] = 70                                # выемка между ног — мягкая
+        radii.append(48 if i % 2 == 0 else 40)   # кончики лучей / внутренние
+    radii[4] = radii[6] = 36                     # нижние лучи — поострее
+    radii[5] = 46                                # выемка между нижними лучами
     path = round_polygon(pts, radii)
 
     mask = Image.new("L", size, 0)
@@ -253,13 +253,16 @@ def draw_body(img: Image.Image, mask: Image.Image) -> None:
     ))
 
 
-def draw_face(img: Image.Image) -> None:
-    # румянец — размытый, поэтому отдельным слоем
+def draw_face(img: Image.Image, mask: Image.Image) -> None:
+    # румянец — размытый, поэтому отдельным слоем; обрезаем по силуэту тела,
+    # чтобы он не вылезал на фон
     def paint_blush(d):
-        d.ellipse(sbox([448, 632, 528, 688]), fill=255)
-        d.ellipse(sbox([718, 628, 798, 684]), fill=255)
+        d.ellipse(sbox([452, 628, 532, 684]), fill=255)
+        d.ellipse(sbox([714, 624, 794, 680]), fill=255)
 
-    img.alpha_composite(soft_layer(img.size, BLUSH, 175, paint_blush, blur=s(11)))
+    img.alpha_composite(
+        soft_layer(img.size, BLUSH, 175, paint_blush, blur=s(11), mask=mask)
+    )
 
     layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
     d = ImageDraw.Draw(layer)
@@ -289,26 +292,67 @@ def draw_face(img: Image.Image) -> None:
     img.alpha_composite(layer)
 
 
-def render(size: int = CANVAS) -> Image.Image:
+def square_bbox(img: Image.Image, pad: float = 0.06) -> tuple[int, int, int, int]:
+    """Квадрат вокруг непрозрачной части картинки с полем в долях стороны."""
+    box = img.getbbox()
+    if box is None:
+        return (0, 0, img.width, img.height)
+    x0, y0, x1, y1 = box
+    side = max(x1 - x0, y1 - y0) * (1 + 2 * pad)
+    cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+    return (round(cx - side / 2), round(cy - side / 2),
+            round(cx + side / 2), round(cy + side / 2))
+
+
+def render(size: int = CANVAS, transparent: bool = False,
+           shadow: bool = True, crop: bool = False) -> Image.Image:
     work = (CANVAS * SS, CANVAS * SS)
-    img = Image.new("RGBA", work, BG + (255,))
-
-    draw_shadow(img)
+    img = Image.new("RGBA", work, BG + (0,))    # рисуем на прозрачном холсте,
+                                                # фон подкладываем в конце
+    mask = star_mask(work)
+    if shadow:
+        draw_shadow(img)
     draw_limbs(img)
-    draw_body(img, star_mask(work))
-    draw_face(img)
+    draw_body(img, mask)
+    draw_face(img, mask)
 
-    return img.convert("RGB").resize((size, size), Image.LANCZOS)
+    if crop:
+        img = img.crop(square_bbox(img))
+
+    img = img.resize((size, size), Image.LANCZOS)
+    if transparent:
+        return img
+
+    sheet = Image.new("RGBA", img.size, BG + (255,))
+    sheet.alpha_composite(img)
+    return sheet.convert("RGB")
 
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Нарисовать звёздочку-персонажа")
     ap.add_argument("--out", default="star.png", help="куда сохранить PNG")
-    ap.add_argument("--size", type=int, default=CANVAS, help="размер стороны, px")
+    ap.add_argument("--size", default=str(CANVAS),
+                    help="размер стороны в px; можно список через запятую "
+                         "(например 1024,512,256) — тогда к имени файла "
+                         "добавляется суффикс размера")
+    ap.add_argument("--bg", choices=("white", "none"), default="white",
+                    help="фон: белый или прозрачный (для иконок в приложении)")
+    ap.add_argument("--crop", action="store_true",
+                    help="обрезать по фигуре с небольшим полем")
+    ap.add_argument("--no-shadow", dest="shadow", action="store_false",
+                    help="без тени на полу")
     args = ap.parse_args()
 
-    render(args.size).save(args.out)
-    print(f"Готово: {args.out} ({args.size}x{args.size})")
+    sizes = [int(v) for v in args.size.split(",") if v.strip()]
+    stem, _, ext = args.out.rpartition(".")
+    if not stem:                      # имя без расширения
+        stem, ext = args.out, "png"
+
+    for size in sizes:
+        path = args.out if len(sizes) == 1 else f"{stem}_{size}.{ext}"
+        render(size, transparent=args.bg == "none",
+               shadow=args.shadow, crop=args.crop).save(path)
+        print(f"Готово: {path} ({size}x{size})")
 
 
 if __name__ == "__main__":
