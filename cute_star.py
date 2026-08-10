@@ -26,6 +26,11 @@ BODY_BOTTOM = (248, 186, 8)    # жёлтый у нижних лучей
 SHADOW = (203, 201, 223)
 EYE = (32, 27, 28)
 BROW = (150, 86, 18)
+LIMB_SHADE = (198, 134, 4)     # тон, которым отделяются руки-ноги
+
+# насколько руки-ноги отделяются от корпуса: (тон конечности, контактная тень)
+LIMB_DEPTH = {"none": (0, 0), "soft": (70, 110),
+              "medium": (110, 130), "strong": (170, 150)}
 BLUSH = (246, 160, 74)
 GLOSS = (255, 255, 255)
 
@@ -251,6 +256,28 @@ def draw_body(img: Image.Image, mask: Image.Image) -> None:
     ))
 
 
+def tint(img: Image.Image, color, alpha: int, mask: Image.Image) -> None:
+    """Подкрашивает область маски полупрозрачным цветом."""
+    layer = Image.new("RGBA", img.size, tuple(color) + (0,))
+    layer.putalpha(mask if alpha >= 255 else mask.point(lambda v: v * alpha // 255))
+    img.alpha_composite(layer)
+
+
+def draw_limb_depth(img: Image.Image, body: Image.Image, limbs: Image.Image,
+                    tone: int = 30, contact: int = 60) -> None:
+    """Отделяет руки-ноги от корпуса, не разрывая силуэт: видимая часть
+    конечности делается чуть темнее, а вдоль края корпуса на неё ложится
+    мягкая контактная тень."""
+    visible = ImageChops.subtract(limbs, body)      # то, что торчит из-за тела
+
+    if tone:
+        tint(img, LIMB_SHADE, tone, visible)
+
+    if contact:
+        edge = body.filter(ImageFilter.GaussianBlur(s(16)))
+        tint(img, LIMB_SHADE, contact, ImageChops.multiply(edge, visible))
+
+
 def draw_face(img: Image.Image, mask: Image.Image) -> None:
     # румянец — размытый, поэтому отдельным слоем; обрезаем по силуэту тела,
     # чтобы он не вылезал на фон
@@ -303,16 +330,19 @@ def square_bbox(img: Image.Image, pad: float = 0.06) -> tuple[int, int, int, int
 
 
 def render(size: int = CANVAS, transparent: bool = False,
-           shadow: bool = True, crop: bool = False) -> Image.Image:
+           shadow: bool = True, crop: bool = False,
+           limb_tone: int = 110, limb_contact: int = 130) -> Image.Image:
     work = (CANVAS * SS, CANVAS * SS)
     img = Image.new("RGBA", work, BG + (0,))    # рисуем на прозрачном холсте,
                                                 # фон подкладываем в конце
     # тело, руки и ноги — один силуэт: заливаются общим градиентом, поэтому
     # руки не выглядят отдельной деталью под корпусом
-    mask = ImageChops.lighter(star_mask(work), limb_mask(work))
+    body, limbs = star_mask(work), limb_mask(work)
+    mask = ImageChops.lighter(body, limbs)
     if shadow:
         draw_shadow(img)
     draw_body(img, mask)
+    draw_limb_depth(img, body, limbs, limb_tone, limb_contact)
     draw_face(img, mask)
 
     if crop:
@@ -340,6 +370,8 @@ def main() -> None:
                     help="обрезать по фигуре с небольшим полем")
     ap.add_argument("--no-shadow", dest="shadow", action="store_false",
                     help="без тени на полу")
+    ap.add_argument("--limb-depth", choices=tuple(LIMB_DEPTH), default="medium",
+                    help="насколько сильно руки-ноги отделяются от корпуса")
     args = ap.parse_args()
 
     sizes = [int(v) for v in args.size.split(",") if v.strip()]
@@ -349,8 +381,9 @@ def main() -> None:
 
     for size in sizes:
         path = args.out if len(sizes) == 1 else f"{stem}_{size}.{ext}"
-        render(size, transparent=args.bg == "none",
-               shadow=args.shadow, crop=args.crop).save(path)
+        tone, contact = LIMB_DEPTH[args.limb_depth]
+        render(size, transparent=args.bg == "none", shadow=args.shadow,
+               crop=args.crop, limb_tone=tone, limb_contact=contact).save(path)
         print(f"Готово: {path} ({size}x{size})")
 
 
