@@ -33,6 +33,7 @@ LIMB_DEPTH = {"none": (0, 0), "soft": (70, 110),
               "medium": (110, 130), "strong": (170, 150)}
 BLUSH = (246, 160, 74)
 GLOSS = (255, 255, 255)
+MOTION = (240, 178, 24)        # штрихи движения у машущей руки
 
 # центр звезды
 CX, CY = 620.0, 566.0
@@ -207,14 +208,24 @@ def draw_shadow(img: Image.Image) -> None:
     ))
 
 
-def limb_mask(size) -> Image.Image:
+ARM_DOWN = (218, 706, 76, 150, 10)       # dx, cy, w, h, наклон наружу
+ARM_UP = (259, 642, 76, 180, -50)        # та же «подмышка», что и у опущенной
+                                         # руки, но капсула поднята вверх-вбок
+
+
+def limb_mask(size, pose: str = "idle") -> Image.Image:
     """Ручки-культяпки по бокам и две ножки снизу — отдельной маской,
     которая потом сливается с телом в один силуэт."""
     m = Image.new("L", size, 0)
     capsule(ImageDraw.Draw(m), CX - FOOT_DX, FOOT_CY, FOOT_W, FOOT_H, 255)
     capsule(ImageDraw.Draw(m), CX + FOOT_DX, FOOT_CY, FOOT_W, FOOT_H, 255)
-    rotated_capsule(m, CX - 218, 706, 76, 150, -10)
-    rotated_capsule(m, CX + 218, 706, 76, 150, 10)
+
+    dx, cy, w, h, tilt = ARM_DOWN
+    rotated_capsule(m, CX - dx, cy, w, h, -tilt)          # левая рука всегда внизу
+
+    if pose == "wave":
+        dx, cy, w, h, tilt = ARM_UP
+    rotated_capsule(m, CX + dx, cy, w, h, tilt)
     return m
 
 
@@ -283,7 +294,7 @@ def draw_limb_depth(img: Image.Image, body: Image.Image, limbs: Image.Image,
         tint(img, LIMB_SHADE, contact, ImageChops.multiply(edge, visible))
 
 
-def draw_face(img: Image.Image, mask: Image.Image) -> None:
+def draw_face(img: Image.Image, mask: Image.Image, pose: str = "idle") -> None:
     # румянец — размытый, поэтому отдельным слоем; обрезаем по силуэту тела,
     # чтобы он не вылезал на фон
     def paint_blush(d):
@@ -314,11 +325,26 @@ def draw_face(img: Image.Image, mask: Image.Image) -> None:
     for x, y in ((491.2, 506.1), (527.3, 487.2), (716.7, 487.2), (752.8, 506.1)):
         d.ellipse(sbox([x - 7, y - 7, x + 7, y + 7]), fill=BROW + (255,))
 
-    # улыбка
-    d.arc(sbox([592, 616, 664, 672]), 25, 155, fill=BROW + (255,), width=int(s(12)))
-    for x, y in ((600.8, 653.3), (655.2, 653.3)):
+    # улыбка: приветствие — шире и радостнее
+    if pose == "wave":
+        box, ends = [584, 612, 672, 678], ((594.4, 654.9), (661.6, 654.9))
+    else:
+        box, ends = [592, 616, 664, 672], ((600.8, 653.3), (655.2, 653.3))
+    d.arc(sbox(box), 25, 155, fill=BROW + (255,), width=int(s(12)))
+    for x, y in ends:
         d.ellipse(sbox([x - 6, y - 6, x + 6, y + 6]), fill=BROW + (255,))
 
+    img.alpha_composite(layer)
+
+
+def draw_motion_lines(img: Image.Image) -> None:
+    """Три коротких штриха у поднятой руки — чтобы читалось «машет»."""
+    layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
+    d = ImageDraw.Draw(layer)
+    hx, hy = 958, 576                      # примерно центр «ладони»
+    for r in (58, 86):
+        d.arc(sbox([hx - r, hy - r, hx + r, hy + r]), 292, 356,
+              fill=MOTION + (255,), width=int(s(13)))
     img.alpha_composite(layer)
 
 
@@ -336,19 +362,22 @@ def square_bbox(img: Image.Image, pad: float = 0.06) -> tuple[int, int, int, int
 
 def render(size: int = CANVAS, transparent: bool = False,
            shadow: bool = True, crop: bool = False,
-           limb_tone: int = 110, limb_contact: int = 130) -> Image.Image:
+           limb_tone: int = 110, limb_contact: int = 130,
+           pose: str = "idle") -> Image.Image:
     work = (CANVAS * SS, CANVAS * SS)
     img = Image.new("RGBA", work, BG + (0,))    # рисуем на прозрачном холсте,
                                                 # фон подкладываем в конце
     # тело, руки и ноги — один силуэт: заливаются общим градиентом, поэтому
     # руки не выглядят отдельной деталью под корпусом
-    body, limbs = star_mask(work), limb_mask(work)
+    body, limbs = star_mask(work), limb_mask(work, pose)
     mask = ImageChops.lighter(body, limbs)
     if shadow:
         draw_shadow(img)
     draw_body(img, mask)
     draw_limb_depth(img, body, limbs, limb_tone, limb_contact)
-    draw_face(img, mask)
+    draw_face(img, mask, pose)
+    if pose == "wave":
+        draw_motion_lines(img)
 
     if crop:
         img = img.crop(square_bbox(img))
@@ -377,6 +406,8 @@ def main() -> None:
                     help="без тени на полу")
     ap.add_argument("--limb-depth", choices=tuple(LIMB_DEPTH), default="medium",
                     help="насколько сильно руки-ноги отделяются от корпуса")
+    ap.add_argument("--pose", choices=("idle", "wave"), default="idle",
+                    help="поза: стоит или машет в знак приветствия")
     args = ap.parse_args()
 
     sizes = [int(v) for v in args.size.split(",") if v.strip()]
@@ -388,7 +419,8 @@ def main() -> None:
         path = args.out if len(sizes) == 1 else f"{stem}_{size}.{ext}"
         tone, contact = LIMB_DEPTH[args.limb_depth]
         render(size, transparent=args.bg == "none", shadow=args.shadow,
-               crop=args.crop, limb_tone=tone, limb_contact=contact).save(path)
+               crop=args.crop, limb_tone=tone, limb_contact=contact,
+               pose=args.pose).save(path)
         print(f"Готово: {path} ({size}x{size})")
 
 

@@ -26,8 +26,14 @@ python3 cute_star.py --out icon.png --size 1024,512,256,180 \
         --bg none --crop --no-shadow
 ```
 
+```bash
+# поза приветствия: машет поднятой рукой
+python3 cute_star.py --out star_wave.png --pose wave
+```
+
 Флаги: `--out`, `--size` (одно число или список через запятую — к именам
 добавится суффикс размера), `--bg white|none`, `--crop`, `--no-shadow`,
-`--limb-depth`.
+`--limb-depth`, `--pose idle|wave`.
 
 ![звёздочка](star.png)
+![звёздочка машет](star_wave.png)
