@@ -13,7 +13,7 @@ from __future__ import annotations
 import argparse
 import math
 
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
 # --- размеры и палитра -------------------------------------------------------
 
@@ -23,7 +23,6 @@ SS = 3                 # коэффициент суперсэмплинга
 BG = (255, 255, 255)
 BODY_TOP = (255, 214, 58)      # жёлтый у верхнего луча
 BODY_BOTTOM = (248, 186, 8)    # жёлтый у нижних лучей
-LIMB = (250, 193, 16)          # руки-ноги чуть темнее корпуса
 SHADOW = (203, 201, 223)
 EYE = (32, 27, 28)
 BROW = (150, 86, 18)
@@ -142,9 +141,8 @@ def capsule(draw, cx, cy, w, h, fill):
     )
 
 
-def rotated_capsule(base: Image.Image, cx, cy, w, h, fill, angle):
-    """Та же таблетка, но повёрнутая. Крутим маску, а не цвет: у повёрнутого
-    RGBA прозрачные пиксели чёрные и интерполяция пачкает края."""
+def rotated_capsule(base: Image.Image, cx, cy, w, h, angle):
+    """Повёрнутая таблетка, подмешанная в L-маску."""
     pad = int(s(max(w, h)))
     m = Image.new("L", (pad * 2, pad * 2), 0)
     ImageDraw.Draw(m).rounded_rectangle(
@@ -153,9 +151,10 @@ def rotated_capsule(base: Image.Image, cx, cy, w, h, fill, angle):
         fill=255,
     )
     m = m.rotate(angle, resample=Image.BICUBIC)
-    layer = Image.new("RGBA", m.size, tuple(fill[:3]) + (0,))
-    layer.putalpha(m)
-    base.alpha_composite(layer, (int(s(cx)) - pad, int(s(cy)) - pad))
+
+    at = (int(s(cx)) - pad, int(s(cy)) - pad)
+    patch = base.crop((at[0], at[1], at[0] + m.width, at[1] + m.height))
+    base.paste(ImageChops.lighter(patch, m), at)
 
 
 def soft_layer(size, color, alpha, painter, blur=0.0, mask=None) -> Image.Image:
@@ -198,16 +197,15 @@ def draw_shadow(img: Image.Image) -> None:
     ))
 
 
-def draw_limbs(img: Image.Image) -> None:
-    """Ручки-культяпки по бокам и две ножки снизу (рисуются под корпусом)."""
-    rotated_capsule(img, 404, 742, 76, 150, LIMB + (255,), -10)
-    rotated_capsule(img, 836, 742, 76, 150, LIMB + (255,), 10)
-
-    layer = Image.new("RGBA", img.size, (0, 0, 0, 0))
-    d = ImageDraw.Draw(layer)
-    capsule(d, 522, 852, 112, 130, LIMB + (255,))
-    capsule(d, 728, 852, 128, 130, LIMB + (255,))
-    img.alpha_composite(layer)
+def limb_mask(size) -> Image.Image:
+    """Ручки-культяпки по бокам и две ножки снизу — отдельной маской,
+    которая потом сливается с телом в один силуэт."""
+    m = Image.new("L", size, 0)
+    capsule(ImageDraw.Draw(m), 522, 852, 112, 130, 255)
+    capsule(ImageDraw.Draw(m), 728, 852, 128, 130, 255)
+    rotated_capsule(m, 402, 706, 76, 150, -10)
+    rotated_capsule(m, 838, 706, 76, 150, 10)
+    return m
 
 
 def star_mask(size) -> Image.Image:
@@ -309,10 +307,11 @@ def render(size: int = CANVAS, transparent: bool = False,
     work = (CANVAS * SS, CANVAS * SS)
     img = Image.new("RGBA", work, BG + (0,))    # рисуем на прозрачном холсте,
                                                 # фон подкладываем в конце
-    mask = star_mask(work)
+    # тело, руки и ноги — один силуэт: заливаются общим градиентом, поэтому
+    # руки не выглядят отдельной деталью под корпусом
+    mask = ImageChops.lighter(star_mask(work), limb_mask(work))
     if shadow:
         draw_shadow(img)
-    draw_limbs(img)
     draw_body(img, mask)
     draw_face(img, mask)
 
