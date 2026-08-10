@@ -197,7 +197,7 @@ def vertical_gradient(size, top_color, bottom_color) -> Image.Image:
 def draw_shadow(img: Image.Image) -> None:
     img.alpha_composite(soft_layer(
         img.size, SHADOW, 255,
-        lambda d: d.ellipse(sbox([424, 888, 848, 944]), fill=255),
+        lambda d: d.ellipse(sbox([CX - 212, 888, CX + 212, 944]), fill=255),
         blur=s(10),
     ))
 
@@ -206,10 +206,10 @@ def limb_mask(size) -> Image.Image:
     """Ручки-культяпки по бокам и две ножки снизу — отдельной маской,
     которая потом сливается с телом в один силуэт."""
     m = Image.new("L", size, 0)
-    capsule(ImageDraw.Draw(m), 522, 852, 112, 130, 255)
-    capsule(ImageDraw.Draw(m), 728, 852, 128, 130, 255)
-    rotated_capsule(m, 402, 706, 76, 150, -10)
-    rotated_capsule(m, 838, 706, 76, 150, 10)
+    capsule(ImageDraw.Draw(m), CX - 100, 852, 120, 130, 255)
+    capsule(ImageDraw.Draw(m), CX + 100, 852, 120, 130, 255)
+    rotated_capsule(m, CX - 218, 706, 76, 150, -10)
+    rotated_capsule(m, CX + 218, 706, 76, 150, 10)
     return m
 
 
