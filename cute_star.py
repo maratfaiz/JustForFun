@@ -69,7 +69,7 @@ def star_vertices() -> list[tuple[float, float]]:
     inner = [
         polar(53, 200),
         polar(-24, 226),
-        polar(-90, 276),   # неглубокая выемка между ног
+        polar(-90, 240),   # выемка между ног — заметная, но не глубокая
         polar(204, 226),
         polar(127, 200),
     ]
