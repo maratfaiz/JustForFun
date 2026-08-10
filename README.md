@@ -35,5 +35,8 @@ python3 cute_star.py --out star_wave.png --pose wave
 добавится суффикс размера), `--bg white|none`, `--crop`, `--no-shadow`,
 `--limb-depth`, `--pose idle|wave`.
 
+Как устроен персонаж и что где менять — `MASCOT.md` и схема `anatomy.png`
+(перерисовывается через `python3 make_anatomy.py`).
+
 ![звёздочка](star.png)
 ![звёздочка машет](star_wave.png)
