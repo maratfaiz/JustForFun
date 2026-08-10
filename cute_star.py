@@ -37,6 +37,11 @@ GLOSS = (255, 255, 255)
 # центр звезды
 CX, CY = 620.0, 566.0
 
+# ножки-капсулы: полукруг — прямой участок — полукруг. Из-под корпуса должно
+# торчать чуть меньше половины капсулы
+FOOT_W, FOOT_H = 112.0, 132.0
+FOOT_DX, FOOT_CY = 100.0, 834.0
+
 
 def s(v: float) -> float:
     """Логическая координата -> координата рабочего холста."""
@@ -206,8 +211,8 @@ def limb_mask(size) -> Image.Image:
     """Ручки-культяпки по бокам и две ножки снизу — отдельной маской,
     которая потом сливается с телом в один силуэт."""
     m = Image.new("L", size, 0)
-    capsule(ImageDraw.Draw(m), CX - 100, 852, 120, 130, 255)
-    capsule(ImageDraw.Draw(m), CX + 100, 852, 120, 130, 255)
+    capsule(ImageDraw.Draw(m), CX - FOOT_DX, FOOT_CY, FOOT_W, FOOT_H, 255)
+    capsule(ImageDraw.Draw(m), CX + FOOT_DX, FOOT_CY, FOOT_W, FOOT_H, 255)
     rotated_capsule(m, CX - 218, 706, 76, 150, -10)
     rotated_capsule(m, CX + 218, 706, 76, 150, 10)
     return m
