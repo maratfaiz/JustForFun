@@ -193,11 +193,11 @@ def mat(img):
 def bed(img):
     """Изголовье кровати и подушка за спиной."""
     lay, d = layer(img)
-    d.rounded_rectangle(sbox([168, 372, 1072, 1064]), radius=s(76),
+    d.rounded_rectangle(sbox([286, 430, 954, 1010]), radius=s(64),
                         fill=ACCENT + (255,))
-    d.rounded_rectangle(sbox([214, 432, 1026, 1012]), radius=s(56),
+    d.rounded_rectangle(sbox([330, 486, 910, 966]), radius=s(48),
                         fill=RING + (255,))
-    d.rounded_rectangle(sbox([286, 520, 954, 812]), radius=s(112),
+    d.rounded_rectangle(sbox([368, 560, 872, 860]), radius=s(96),
                         fill=CLOUD + (255,))
     img.alpha_composite(lay)
 
@@ -205,9 +205,9 @@ def bed(img):
 def blanket(img):
     """Одеяло поверх нижней части тела."""
     lay, d = layer(img)
-    d.rounded_rectangle(sbox([168, 848, 1072, 1110]), radius=s(64),
+    d.rounded_rectangle(sbox([286, 786, 954, 1040]), radius=s(56),
                         fill=(150, 136, 244, 255))
-    d.rounded_rectangle(sbox([168, 848, 1072, 928]), radius=s(44),
+    d.rounded_rectangle(sbox([286, 786, 954, 866]), radius=s(40),
                         fill=CLOUD + (255,))
     img.alpha_composite(lay)
 
