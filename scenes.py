@@ -315,40 +315,40 @@ def pillow(img):
 def notepad(img):
     """Блокнот с карандашом в руках."""
     lay, d = layer(img)
-    d.rounded_rectangle(sbox([432, 690, 808, 934]), radius=s(26),
+    d.rounded_rectangle(sbox([478, 678, 762, 886]), radius=s(24),
                         fill=PAPER + (255,))
-    d.rounded_rectangle(sbox([432, 690, 492, 934]), radius=s(26),
+    d.rounded_rectangle(sbox([478, 678, 528, 886]), radius=s(24),
                         fill=ACCENT + (255,))
     for i in range(4):
-        d.line(sbox([528, 754 + i * 48, 770, 754 + i * 48]),
-               fill=PAPER_LINE + (255,), width=int(s(11)))
+        d.line(sbox([556, 730 + i * 42, 730, 730 + i * 42]),
+               fill=PAPER_LINE + (255,), width=int(s(10)))
     img.alpha_composite(lay)
 
 
 def card(img):
     """Карточка с текстом-заглушкой."""
     lay, d = layer(img)
-    d.rounded_rectangle(sbox([424, 692, 816, 936]), radius=s(28),
+    d.rounded_rectangle(sbox([474, 680, 766, 888]), radius=s(26),
                         fill=PAPER + (255,))
-    d.rounded_rectangle(sbox([424, 692, 816, 760]), radius=s(28),
+    d.rounded_rectangle(sbox([474, 680, 766, 738]), radius=s(26),
                         fill=ACCENT + (255,))
-    d.rectangle(sbox([424, 742, 816, 760]), fill=ACCENT + (255,))
-    for i, w in enumerate((300, 248, 196)):
-        d.rounded_rectangle(sbox([462, 798 + i * 44, 462 + w, 826 + i * 44]),
-                            radius=s(14), fill=PAPER_LINE + (255,))
+    d.rectangle(sbox([474, 722, 766, 738]), fill=ACCENT + (255,))
+    for i, w in enumerate((222, 182, 142)):
+        d.rounded_rectangle(sbox([504, 772 + i * 38, 504 + w, 796 + i * 38]),
+                            radius=s(12), fill=PAPER_LINE + (255,))
     img.alpha_composite(lay)
 
 
 def letter(img):
     """Конверт и перо — «письмо себе»."""
     lay, d = layer(img)
-    d.rounded_rectangle(sbox([428, 700, 812, 926]), radius=s(24),
+    d.rounded_rectangle(sbox([478, 684, 762, 876]), radius=s(22),
                         fill=PAPER + (255,))
-    d.polygon([*sbox([428, 716]), *sbox([620, 844]), *sbox([812, 716])],
+    d.polygon([*sbox([478, 698]), *sbox([620, 796]), *sbox([762, 698])],
               fill=CLOUD + (255,))
-    d.line(sbox([428, 716, 620, 844, 812, 716]), fill=PAPER_LINE + (255,),
-           width=int(s(9)), joint="curve")
-    heart(d, 620, 878, 72, RED)
+    d.line(sbox([478, 698, 620, 796, 762, 698]), fill=PAPER_LINE + (255,),
+           width=int(s(8)), joint="curve")
+    heart(d, 620, 836, 62, RED)
     img.alpha_composite(lay)
 
 
