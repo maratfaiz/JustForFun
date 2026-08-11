@@ -360,7 +360,7 @@ def draw_eyes(d, kind: str) -> None:
         w, h = (34, 50) if kind == "wide" else (29, 42)
         cy = EYE_CY
         if kind == "up":                             # взгляд наверх: зрачки выше
-            w, h, cy = 29, 29, EYE_CY - 28
+            w, h, cy = 27, 38, EYE_CY - 22
         d.rounded_rectangle(sbox([ex - w, cy - h, ex + w, cy + h]),
                             radius=s(w), fill=EYE + (255,))
         gx = ex + 6 if i == 0 else ex - 28           # блик смотрит к переносице

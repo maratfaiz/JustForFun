@@ -189,8 +189,8 @@ def think_bubble(img):
     """Пузырь размышления с сердцем внутри."""
     lay, d = layer(img)
     d.ellipse(sbox([812, 128, 1112, 368]), fill=CLOUD + (255,))
-    d.ellipse(sbox([796, 386, 856, 446]), fill=CLOUD + (255,))
-    d.ellipse(sbox([764, 462, 800, 498]), fill=CLOUD + (255,))
+    # хвостик пузыря — выше грани луча, чтобы звезда на него не заходила
+    d.ellipse(sbox([818, 368, 874, 424]), fill=CLOUD + (255,))
     # в пузыре — многоточие: персонаж задумался
     for k, dx in enumerate((-84, 0, 84)):
         r = 26
