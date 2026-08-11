@@ -129,9 +129,9 @@ def aura(img):
 def hearts_around(img):
     """Сердечки вокруг персонажа — «любовь к себе»."""
     lay, d = layer(img)
-    ring = ((196, 352, 92), (1036, 306, 80), (150, 640, 60), (1094, 610, 68),
-            (330, 148, 56), (902, 118, 70), (388, 962, 52), (872, 986, 58),
-            (66, 452, 44), (1176, 452, 48))
+    ring = ((214, 372, 108), (1024, 330, 96), (168, 656, 74), (1080, 626, 82),
+            (350, 176, 68), (890, 148, 84), (404, 968, 64), (856, 990, 70),
+            (92, 476, 56), (1156, 468, 60))
     for i, (cx, cy, size) in enumerate(ring):
         color = RED if i % 2 == 0 else (255, 156, 176)
         heart(d, cx, cy, size, color, 255 if i % 2 == 0 else 225)
@@ -226,6 +226,11 @@ def hands_notepad(img):
     hands_over(img)
 
 
+def hands_clap(img):
+    """Сомкнутые ладони поверх корпуса — иначе они тонут в силуэте."""
+    hands_over(img, arm="clap")
+
+
 def cloud(img):
     """Облако, в котором персонаж сидит: рисуется поверх ножек."""
     lay, d = layer(img)
@@ -288,17 +293,17 @@ def beanie(img):
 def press_hat(img):
     """Шляпа журналиста: поля, тулья и карточка PRESS."""
     lay, d = layer(img)
-    d.rounded_rectangle(sbox([386, 344, 856, 400]), radius=s(28),
+    d.rounded_rectangle(sbox([362, 396, 878, 456]), radius=s(30),
                         fill=METAL + (255,))
-    d.rounded_rectangle(sbox([470, 168, 772, 358]), radius=s(40),
+    d.rounded_rectangle(sbox([454, 176, 786, 410]), radius=s(44),
                         fill=METAL_LIGHT + (255,))
-    d.rounded_rectangle(sbox([466, 300, 776, 352]), radius=s(20),
+    d.rounded_rectangle(sbox([450, 340, 790, 404]), radius=s(22),
                         fill=METAL + (255,))
-    d.rounded_rectangle(sbox([700, 292, 806, 356]), radius=s(12),
+    d.rounded_rectangle(sbox([694, 320, 848, 412]), radius=s(16),
                         fill=PAPER + (255,))
     for i in range(3):
-        d.line(sbox([714, 308 + i * 16, 792, 308 + i * 16]),
-               fill=PAPER_LINE + (255,), width=int(s(6)))
+        d.line(sbox([714, 344 + i * 22, 828, 344 + i * 22]),
+               fill=PAPER_LINE + (255,), width=int(s(8)))
     img.alpha_composite(lay)
 
 
@@ -372,19 +377,21 @@ def flag(img):
 def rocket(img):
     """Ракета рядом с персонажем."""
     lay, d = layer(img)
-    cx = 966
-    d.polygon([*sbox([cx, 236]), *sbox([cx + 82, 400]), *sbox([cx - 82, 400])],
+    cx = 962
+    for sx, sy, sz in ((cx, 940, 26), (cx - 40, 1010, 18), (cx + 44, 1002, 20)):
+        star4(d, sx, sy, sz, STAR_LIGHT, 220)
+    d.polygon([*sbox([cx, 196]), *sbox([cx + 82, 360]), *sbox([cx - 82, 360])],
               fill=RED + (255,))
-    d.rounded_rectangle(sbox([cx - 82, 372, cx + 82, 744]), radius=s(60),
+    d.rounded_rectangle(sbox([cx - 82, 332, cx + 82, 704]), radius=s(60),
                         fill=PAPER + (255,))
-    d.ellipse(sbox([cx - 44, 456, cx + 44, 544]), fill=ACCENT + (255,))
-    d.polygon([*sbox([cx - 82, 620]), *sbox([cx - 168, 774]), *sbox([cx - 82, 744])],
+    d.ellipse(sbox([cx - 44, 416, cx + 44, 504]), fill=ACCENT + (255,))
+    d.polygon([*sbox([cx - 82, 580]), *sbox([cx - 168, 734]), *sbox([cx - 82, 704])],
               fill=RED + (255,))
-    d.polygon([*sbox([cx + 82, 620]), *sbox([cx + 168, 774]), *sbox([cx + 82, 744])],
+    d.polygon([*sbox([cx + 82, 580]), *sbox([cx + 168, 734]), *sbox([cx + 82, 704])],
               fill=RED + (255,))
-    d.polygon([*sbox([cx - 58, 744]), *sbox([cx + 58, 744]), *sbox([cx, 906])],
+    d.polygon([*sbox([cx - 58, 704]), *sbox([cx + 58, 704]), *sbox([cx, 872])],
               fill=STAR_LIGHT + (255,))
-    d.polygon([*sbox([cx - 30, 744]), *sbox([cx + 30, 744]), *sbox([cx, 846])],
+    d.polygon([*sbox([cx - 30, 704]), *sbox([cx + 30, 704]), *sbox([cx, 810])],
               fill=(255, 236, 170, 255))
     img.alpha_composite(lay)
 
@@ -392,11 +399,10 @@ def rocket(img):
 def clap_lines(img):
     """Дужки у сведённых ладоней — аплодисменты."""
     lay, d = layer(img)
-    for r in (104, 148, 192):
-        d.arc(sbox([620 - r, 706 - r, 620 + r, 706 + r]), 196, 252,
-              fill=cs.MOTION + (255,), width=int(s(15)))
-        d.arc(sbox([620 - r, 706 - r, 620 + r, 706 + r]), 288, 344,
-              fill=cs.MOTION + (255,), width=int(s(15)))
+    for cx, a0, a1 in ((452, 132, 228), (788, 312, 48)):
+        for r in (58, 92):
+            d.arc(sbox([cx - r, 730 - r, cx + r, 730 + r]), a0, a1,
+                  fill=cs.MOTION + (255,), width=int(s(14)))
     img.alpha_composite(lay)
 
 
@@ -459,15 +465,16 @@ SCENES: dict[str, dict] = {
     "ex5a": dict(pose="hold", face=F(mouth="smile"), title="Держит карточку",
                  front=[card, hands_notepad]),
     "ex5b": dict(pose="idle", face=F(eyes="closed", brows="none", mouth="wide"),
-                 title="Улыбается"),
+                 title="Улыбается", back=[stars_around]),
     "ex6": dict(pose="hug", face=F(eyes="closed", brows="none", mouth="smile"),
                 title="Вокруг сердечки", back=[hearts_around], blush=215),
     "ex7": dict(pose="clap", face=F(eyes="closed", brows="none", mouth="open"),
-                title="Аплодирует", back=[sparkle_burst], front=[clap_lines]),
+                title="Аплодирует", back=[sparkle_burst],
+                front=[hands_clap, clap_lines]),
     "ex8": dict(pose="hold", face=F(mouth="smile"), title="Пишет письмо",
                 front=[letter, hands_notepad]),
-    "ex9": dict(pose="idle", face=F(eyes="sparkle", brows="raised", mouth="open"),
-                title="С ракетой", back=[stars_around], front=[rocket]),
+    "ex9": dict(pose="cheer", face=F(eyes="sparkle", brows="raised", mouth="open"),
+                title="С ракетой", back=[stars_around, rocket]),
     "ex10": dict(pose="hold", face=F(eyes="closed", brows="none", mouth="smile"),
                  title="Держит сердце", blush=210,
                  front=[big_heart, hands_heart]),
