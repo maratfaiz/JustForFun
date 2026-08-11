@@ -58,12 +58,16 @@ def star4(d, cx, cy, size, color, alpha=255):
 
 
 def heart(d, cx, cy, size, color, alpha=255):
-    r = size / 2
-    d.ellipse(sbox([cx - r, cy - r * 0.9, cx, cy + r * 0.2]), fill=color + (alpha,))
-    d.ellipse(sbox([cx, cy - r * 0.9, cx + r, cy + r * 0.2]), fill=color + (alpha,))
-    d.polygon([*sbox([cx - r * 0.96, cy - r * 0.1]),
-               *sbox([cx + r * 0.96, cy - r * 0.1]),
-               *sbox([cx, cy + r])], fill=color + (alpha,))
+    """Классическая кривая сердца — доли смыкаются без провала между ними."""
+    k = size / 34.0
+    pts = []
+    for i in range(96):
+        t = i * 2 * math.pi / 96
+        x = 16 * math.sin(t) ** 3
+        y = (13 * math.cos(t) - 5 * math.cos(2 * t)
+             - 2 * math.cos(3 * t) - math.cos(4 * t))
+        pts += sbox([cx + x * k, cy - y * k])
+    d.polygon(pts, fill=color + (alpha,))
 
 
 # --- окружение (слой back) ---------------------------------------------------
@@ -219,7 +223,7 @@ def hands_heart(img):
 
 
 def hands_notepad(img):
-    hands_over(img, dy=44)
+    hands_over(img)
 
 
 def cloud(img):
@@ -311,51 +315,47 @@ def pillow(img):
 def notepad(img):
     """Блокнот с карандашом в руках."""
     lay, d = layer(img)
-    d.rounded_rectangle(sbox([456, 686, 774, 908]), radius=s(24),
+    d.rounded_rectangle(sbox([432, 690, 808, 934]), radius=s(26),
                         fill=PAPER + (255,))
-    d.rounded_rectangle(sbox([456, 686, 508, 908]), radius=s(24),
+    d.rounded_rectangle(sbox([432, 690, 492, 934]), radius=s(26),
                         fill=ACCENT + (255,))
     for i in range(4):
-        d.line(sbox([538, 744 + i * 44, 744, 744 + i * 44]),
-               fill=PAPER_LINE + (255,), width=int(s(10)))
-    d.line(sbox([846, 630, 768, 784]), fill=WOOD + (255,), width=int(s(26)))
-    d.polygon([*sbox([760, 774]), *sbox([788, 788]), *sbox([758, 812])],
-              fill=(60, 60, 70, 255))
+        d.line(sbox([528, 754 + i * 48, 770, 754 + i * 48]),
+               fill=PAPER_LINE + (255,), width=int(s(11)))
     img.alpha_composite(lay)
 
 
 def card(img):
     """Карточка с текстом-заглушкой."""
     lay, d = layer(img)
-    d.rounded_rectangle(sbox([436, 690, 804, 918]), radius=s(28),
+    d.rounded_rectangle(sbox([424, 692, 816, 936]), radius=s(28),
                         fill=PAPER + (255,))
-    d.rounded_rectangle(sbox([436, 690, 804, 754]), radius=s(28),
+    d.rounded_rectangle(sbox([424, 692, 816, 760]), radius=s(28),
                         fill=ACCENT + (255,))
-    d.rectangle(sbox([436, 736, 804, 754]), fill=ACCENT + (255,))
-    for i, w in enumerate((286, 236, 186)):
-        d.rounded_rectangle(sbox([470, 786 + i * 42, 470 + w, 812 + i * 42]),
-                            radius=s(13), fill=PAPER_LINE + (255,))
+    d.rectangle(sbox([424, 742, 816, 760]), fill=ACCENT + (255,))
+    for i, w in enumerate((300, 248, 196)):
+        d.rounded_rectangle(sbox([462, 798 + i * 44, 462 + w, 826 + i * 44]),
+                            radius=s(14), fill=PAPER_LINE + (255,))
     img.alpha_composite(lay)
 
 
 def letter(img):
     """Конверт и перо — «письмо себе»."""
     lay, d = layer(img)
-    d.rounded_rectangle(sbox([444, 700, 796, 908]), radius=s(22),
+    d.rounded_rectangle(sbox([428, 700, 812, 926]), radius=s(24),
                         fill=PAPER + (255,))
-    d.polygon([*sbox([444, 714]), *sbox([620, 830]), *sbox([796, 714])],
+    d.polygon([*sbox([428, 716]), *sbox([620, 844]), *sbox([812, 716])],
               fill=CLOUD + (255,))
-    d.line(sbox([444, 714, 620, 830, 796, 714]), fill=PAPER_LINE + (255,),
-           width=int(s(8)), joint="curve")
-    heart(d, 620, 862, 60, RED)
+    d.line(sbox([428, 716, 620, 844, 812, 716]), fill=PAPER_LINE + (255,),
+           width=int(s(9)), joint="curve")
+    heart(d, 620, 878, 72, RED)
     img.alpha_composite(lay)
 
 
 def big_heart(img):
     """Большое сердце в руках."""
     lay, d = layer(img)
-    heart(d, 620, 792, 268, RED)
-    heart(d, 568, 754, 76, (255, 178, 186))
+    heart(d, 620, 796, 296, RED)
     img.alpha_composite(lay)
 
 
