@@ -203,6 +203,30 @@ def hands_notepad(img):
     hands_over(img)
 
 
+LEG = (236, 176, 14)          # ноги светлее корпуса — не сливаются
+
+
+def mat(img):
+    """Коврик под сидящим."""
+    lay, d = layer(img)
+    d.ellipse(sbox([352, 828, 888, 968]), fill=ACCENT + (255,))
+    d.ellipse(sbox([394, 848, 846, 940]), fill=RING + (255,))
+    img.alpha_composite(lay)
+
+
+def lotus_legs(img):
+    """Только скрещённые ноги: руки персонаж держит сам, из своих плеч."""
+    legs = Image.new("L", img.size, 0)
+    cs.rotated_capsule(legs, cs.CX - 66, 822, 168, 84, -10)
+    cs.rotated_capsule(legs, cs.CX + 66, 834, 168, 84, 10)
+    lay = Image.new("RGBA", img.size, LEG + (0,))
+    lay.putalpha(legs)
+    img.alpha_composite(lay)
+
+    edge = cs.star_mask(img.size).filter(ImageFilter.GaussianBlur(s(18)))
+    cs.tint(img, cs.LIMB_SHADE, 120, ImageChops.multiply(edge, legs))
+
+
 def hands_clap(img):
     """Ладони поверх корпуса, одна чуть выше другой — движение хлопка."""
     dx, cy, w, h, tilt = cs.ARMS["clap"]
@@ -469,13 +493,14 @@ SCENES: dict[str, dict] = {
                                                mouth="smile"), blush=210,
                            title="Аффирмации завершены",
                            back=[hearts_around]),
-    "meditation": dict(pose="float", face=F(eyes="sleepy", mouth="smile"),
-                       title="Медитация: парит",
-                       back=[floating_stars, planets_small]),
-    "meditationcomplete": dict(pose="float", face=F(eyes="closed", brows="none",
+    "meditation": dict(pose="lotus", face=F(eyes="sleepy", mouth="smile"),
+                       title="Медитация: поза лотоса",
+                       back=[floating_stars, planets_small, mat],
+                       front=[lotus_legs]),
+    "meditationcomplete": dict(pose="lotus", face=F(eyes="closed", brows="none",
                                                     mouth="smile"),
                                title="Медитация завершена",
-                               back=[stars_around]),
+                               back=[stars_around, mat], front=[lotus_legs]),
 
     # вспомогательные
     "home-wardrobe": dict(pose="idle", face=F(eyes="wink", mouth="wide"),
