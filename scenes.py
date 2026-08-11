@@ -113,6 +113,12 @@ def planet(img):
 
 
 
+def calm_glow(img):
+    """Очень мягкий тёплый ореол — поддержка без пафоса."""
+    soft(img, (255, 222, 140), 95,
+         lambda d: d.ellipse(sbox([300, 250, 940, 890]), fill=255), blur=s(80))
+
+
 def aura(img):
     """Тёплое сияние вокруг фигуры — «умиротворение»."""
     soft(img, (255, 214, 96), 150,
@@ -222,6 +228,17 @@ def hands_notepad(img):
     hands_over(img)
 
 
+def lotus_legs(img):
+    """Скрещённые ножки поверх корпуса — иначе поза лотоса читается как
+    «стоит за ковриком»."""
+    m = Image.new("L", img.size, 0)
+    cs.rotated_capsule(m, cs.CX - 62, 828, 108, 72, -16)
+    cs.rotated_capsule(m, cs.CX + 62, 838, 108, 72, 16)
+    lay = Image.new("RGBA", img.size, HAND + (0,))
+    lay.putalpha(m)
+    img.alpha_composite(lay)
+
+
 def hands_clap(img):
     """Ладони поверх корпуса, одна чуть выше другой — движение хлопка."""
     dx, cy, w, h, tilt = cs.ARMS["clap"]
@@ -285,10 +302,10 @@ def nightcap(img):
 def beanie(img):
     """Шапочка — «стиль дня»."""
     lay, d = layer(img)
-    d.pieslice(sbox([458, 186, 782, 476]), 180, 360, fill=ACCENT + (255,))
-    d.rounded_rectangle(sbox([444, 392, 796, 462]), radius=s(34),
+    d.pieslice(sbox([474, 214, 766, 600]), 180, 360, fill=ACCENT + (255,))
+    d.rounded_rectangle(sbox([458, 398, 782, 466]), radius=s(32),
                         fill=RING + (255,))
-    d.ellipse(sbox([582, 138, 658, 214]), fill=RING + (255,))
+    d.ellipse(sbox([586, 176, 654, 244]), fill=RING + (255,))
     img.alpha_composite(lay)
 
 
@@ -490,16 +507,19 @@ SCENES: dict[str, dict] = {
                            back=[aura, hearts_around]),
     "meditation": dict(pose="lotus", face=F(eyes="sleepy", mouth="smile"),
                        title="Медитация: лотос",
-                       back=[floating_stars, planets_small, mat]),
+                       back=[floating_stars, planets_small, mat],
+                       front=[lotus_legs]),
     "meditationcomplete": dict(pose="lotus", face=F(eyes="closed", brows="none",
                                                     mouth="smile"),
-                               title="Медитация завершена", back=[aura, mat]),
+                               title="Медитация завершена", back=[aura, mat],
+                               front=[lotus_legs]),
 
     # вспомогательные
     "home-wardrobe": dict(pose="idle", face=F(eyes="wink", mouth="wide"),
                           title="Гардероб: стиль дня", front=[beanie]),
     "crisis": dict(pose="idle", face=F(eyes="sleepy", mouth="smile"),
-                   title="Кризисный экран: спокойная поддержка"),
+                   title="Кризисный экран: спокойная поддержка",
+                   back=[calm_glow]),
 }
 
 # алиасы: один файл переиспользуется на нескольких экранах
