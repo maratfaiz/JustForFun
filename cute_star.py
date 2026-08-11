@@ -468,9 +468,12 @@ def draw_props(img: Image.Image, props) -> None:
                        fill=MOTION + (255,), width=int(s(11)), joint="curve")
                 size = k
         elif prop == "tear":
-            d.ellipse(sbox([742, 664, 786, 726]), fill=TEAR + (235,))
-            d.polygon([*sbox([742, 690]), *sbox([786, 690]),
-                       *sbox([764, 638])], fill=TEAR + (235,))
+            for tx, ty, k in ((764, 682, 1.0), (486, 726, 0.72)):
+                rx, ry = 22 * k, 31 * k
+                d.ellipse(sbox([tx - rx, ty - ry, tx + rx, ty + ry]),
+                          fill=TEAR + (235,))
+                d.polygon([*sbox([tx - rx, ty]), *sbox([tx + rx, ty]),
+                           *sbox([tx, ty - 52 * k])], fill=TEAR + (235,))
         elif prop == "question":
             stroke_arc(d, [846, 236, 946, 336], 175, 20, MOTION, 15)
             d.line(sbox([939, 303, 900, 352]), fill=MOTION + (255,),

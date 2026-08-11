@@ -166,9 +166,9 @@ def mat(img):
 def big_question(img):
     """Крупный знак вопроса у головы."""
     lay, d = layer(img)
-    cs.stroke_arc(d, [852, 176, 1012, 336], 175, 20, ACCENT, 26)
-    d.line(sbox([1000, 288, 936, 366]), fill=ACCENT + (255,), width=int(s(26)))
-    d.ellipse(sbox([916, 398, 964, 446]), fill=ACCENT + (255,))
+    cs.stroke_arc(d, [872, 168, 1032, 328], 175, 20, ACCENT, 30)
+    d.line(sbox([1016, 268, 952, 340]), fill=ACCENT + (255,), width=int(s(30)))
+    d.ellipse(sbox([924, 374, 984, 434]), fill=ACCENT + (255,))
     img.alpha_composite(lay)
 
 
@@ -286,15 +286,15 @@ def pillow(img):
 def notepad(img):
     """Блокнот с карандашом в руках."""
     lay, d = layer(img)
-    d.rounded_rectangle(sbox([446, 630, 780, 878]), radius=s(24),
+    d.rounded_rectangle(sbox([456, 686, 774, 908]), radius=s(24),
                         fill=PAPER + (255,))
-    d.rounded_rectangle(sbox([446, 630, 496, 878]), radius=s(24),
+    d.rounded_rectangle(sbox([456, 686, 508, 908]), radius=s(24),
                         fill=ACCENT + (255,))
-    for i in range(5):
-        d.line(sbox([524, 690 + i * 40, 748, 690 + i * 40]),
-               fill=PAPER_LINE + (255,), width=int(s(9)))
-    d.line(sbox([806, 604, 742, 752]), fill=WOOD + (255,), width=int(s(22)))
-    d.polygon([*sbox([736, 744]), *sbox([760, 756]), *sbox([734, 776])],
+    for i in range(4):
+        d.line(sbox([538, 744 + i * 44, 744, 744 + i * 44]),
+               fill=PAPER_LINE + (255,), width=int(s(10)))
+    d.line(sbox([846, 630, 768, 784]), fill=WOOD + (255,), width=int(s(26)))
+    d.polygon([*sbox([760, 774]), *sbox([788, 788]), *sbox([758, 812])],
               fill=(60, 60, 70, 255))
     img.alpha_composite(lay)
 
@@ -329,8 +329,8 @@ def letter(img):
 def big_heart(img):
     """Большое сердце в руках."""
     lay, d = layer(img)
-    heart(d, 620, 726, 300, RED)
-    heart(d, 566, 676, 78, (255, 178, 186))
+    heart(d, 620, 792, 268, RED)
+    heart(d, 568, 754, 76, (255, 178, 186))
     img.alpha_composite(lay)
 
 
@@ -378,9 +378,9 @@ def clap_lines(img):
 def point_lines(img):
     """Штрихи у указывающей руки."""
     lay, d = layer(img)
-    for r in (66, 98):
-        d.arc(sbox([1010 - r, 560 - r, 1010 + r, 560 + r]), 300, 60,
-              fill=cs.MOTION + (255,), width=int(s(12)))
+    for r in (74, 112):
+        d.arc(sbox([1074 - r, 556 - r, 1074 + r, 556 + r]), 302, 58,
+              fill=cs.MOTION + (255,), width=int(s(13)))
     img.alpha_composite(lay)
 
 
@@ -421,7 +421,7 @@ SCENES: dict[str, dict] = {
                 back=[hearts_around], front=[big_heart]),
 
     # упражнения
-    "exercise-1": dict(pose="idle", face=F(brows="angry", mouth="sad"),
+    "exercise-1": dict(pose="hug", face=F(brows="angry", mouth="sad"),
                        title="Упражнение: сердится"),
     "ex1": dict(pose="hold", face=F(mouth="smile"), title="С блокнотом",
                 front=[notepad]),
