@@ -12,23 +12,30 @@ const fs = require('fs');
 const path = require('path');
 const { Resvg } = require('@resvg/resvg-js');
 
-const [, , assetsDir, outDir, sizeArg] = process.argv;
+const [, , assetsDir, outDir, sizeArg, weightArg] = process.argv;
 if (!assetsDir || !outDir) {
-  console.error('usage: node phosphor_render.js <assets> <out> [size]');
+  console.error('usage: node phosphor_render.js <assets> <out> [size] [weight]');
   process.exit(1);
 }
 const size = parseInt(sizeArg || '1024', 10);
+const WEIGHT = weightArg || 'fill';
 const map = JSON.parse(
   fs.readFileSync(path.join(__dirname, 'phosphor-map.json'), 'utf8'));
 
-const WEIGHT = 'bold';
-// сердце нужно в двух видах независимо от общего веса
-const FORCE = { 'icon-heart-outline': 'bold', 'icon-heart-fill': 'fill' };
-// детали для составных иконок
+// Сердце нужно в двух видах независимо от общего веса. Снежинка и волны —
+// линейные формы: в весе fill Phosphor заворачивает их в залитую плашку с
+// вырезом, поэтому они остаются контурными.
+const FORCE = {
+  'icon-heart-outline': 'bold',
+  'icon-heart-fill': 'fill',
+  'icon-freeze': 'bold',
+  'icon-ambience-ocean': 'bold',
+};
+// детали для составных иконок — в том же весе, что и весь набор
 const PARTS = {
-  'part-circle': ['circle', 'bold'],
+  'part-circle': ['circle', WEIGHT],
   'part-star': ['star', 'fill'],
-  'part-chat-teardrop': ['chat-teardrop', 'bold'],
+  'part-chat-teardrop': ['chat-teardrop', WEIGHT],
 };
 
 fs.mkdirSync(outDir, { recursive: true });
@@ -51,4 +58,5 @@ for (const [name, phName] of Object.entries(map)) {
 for (const [name, [phName, weight]] of Object.entries(PARTS)) {
   render(phName, weight, name);
 }
+fs.writeFileSync(path.join(outDir, 'weight.txt'), WEIGHT);
 console.log(`${outDir}: ${Object.keys(map).length} иконок @ ${size}px (${WEIGHT})`);

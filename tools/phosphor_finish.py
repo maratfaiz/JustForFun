@@ -15,7 +15,7 @@ import os
 import shutil
 import sys
 
-from PIL import Image, ImageDraw
+from PIL import Image, ImageChops, ImageDraw
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from icons import ICONS  # noqa: E402  — только ради таблицы цветов
@@ -23,37 +23,45 @@ from icons import ICONS  # noqa: E402  — только ради таблицы 
 STROKE_RATIO = 24 / 256      # толщина линии Phosphor bold относительно стороны
 
 
-def place(base: Image.Image, part: Image.Image, frac_h, cx, cy):
-    """Вписывает part по высоте frac_h и ставит центром в (cx, cy) — доли."""
+def fit(base: Image.Image, part: Image.Image, frac_h, cx, cy) -> Image.Image:
+    """Маска part, вписанная по высоте frac_h с центром в (cx, cy) — доли."""
     n = base.size[0]
     part = part.crop(part.getchannel("A").getbbox())
     h = int(n * frac_h)
     w = max(1, int(part.size[0] * h / part.size[1]))
     part = part.resize((w, h), Image.LANCZOS)
-    base.paste(part, (int(n * cx - w / 2), int(n * cy - h / 2)), part)
-    return base
+    layer = Image.new("L", (n, n), 0)
+    layer.paste(part.getchannel("A"),
+                (int(n * cx - w / 2), int(n * cy - h / 2)))
+    return layer
 
 
-def compose_lumen(raw: str) -> Image.Image:
+def apply(base: Image.Image, layer: Image.Image, filled: bool) -> Image.Image:
+    """В залитом весе деталь вырезается из фигуры, в контурном — кладётся на неё."""
+    a = base.getchannel("A")
+    a = ImageChops.subtract(a, layer) if filled else ImageChops.lighter(a, layer)
+    out = Image.new("RGBA", base.size, (0, 0, 0, 0))
+    out.paste(Image.new("RGBA", base.size, "#000000"), (0, 0), a)
+    return out
+
+
+def compose_lumen(raw: str, filled: bool) -> Image.Image:
     coin = Image.open(os.path.join(raw, "part-circle.png")).convert("RGBA")
     star = Image.open(os.path.join(raw, "part-star.png")).convert("RGBA")
-    return place(coin, star, 0.40, 0.5, 0.5)
+    return apply(coin, fit(coin, star, 0.40, 0.5, 0.5), filled)
 
 
-def compose_critic_voice(raw: str) -> Image.Image:
+def compose_critic_voice(raw: str, filled: bool) -> Image.Image:
     bub = Image.open(os.path.join(raw, "part-chat-teardrop.png")).convert("RGBA")
     n = bub.size[0]
-    stroke = n * STROKE_RATIO
     ss = 4
     m = Image.new("L", (n * ss, n * ss), 0)
     d = ImageDraw.Draw(m)
-    cx, r = 0.556 * n * ss, stroke * ss / 2
+    cx, r = 0.556 * n * ss, n * STROKE_RATIO * ss / 2
     top, bot, dot = 0.305 * n * ss, 0.502 * n * ss, 0.594 * n * ss
     d.rounded_rectangle([cx - r, top, cx + r, bot], radius=r, fill=255)
     d.ellipse([cx - r, dot - r, cx + r, dot + r], fill=255)
-    bub.paste(Image.new("RGBA", (n, n), "#000000"), (0, 0),
-              m.resize((n, n), Image.LANCZOS))
-    return bub
+    return apply(bub, m.resize((n, n), Image.LANCZOS), filled)
 
 
 def main() -> None:
@@ -62,12 +70,15 @@ def main() -> None:
     os.makedirs(out, exist_ok=True)
     os.makedirs(colored, exist_ok=True)
 
+    with open(os.path.join(raw, "weight.txt")) as fh:
+        filled = fh.read().strip() == "fill"
+
     for name in ICONS:
         src = os.path.join(raw, f"{name}.png")
         if name == "icon-lumen":
-            img = compose_lumen(raw)
+            img = compose_lumen(raw, filled)
         elif name == "icon-critic-voice":
-            img = compose_critic_voice(raw)
+            img = compose_critic_voice(raw, filled)
         else:
             img = Image.open(src).convert("RGBA")
         img.save(os.path.join(out, f"{name}.png"))
