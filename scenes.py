@@ -72,9 +72,8 @@ def heart(d, cx, cy, size, color, alpha=255):
 def stars_around(img):
     """Звёздная россыпь вокруг персонажа."""
     lay, d = layer(img)
-    for cx, cy, size in ((196, 268, 34), (1044, 214, 42), (312, 660, 22),
-                         (964, 700, 26), (150, 486, 18), (1092, 462, 20),
-                         (420, 150, 20), (830, 120, 26)):
+    for cx, cy, size in ((198, 270, 28), (1046, 216, 32), (154, 560, 18),
+                         (1088, 540, 20), (846, 122, 22)):
         star4(d, cx, cy, size, STAR_LIGHT)
     img.alpha_composite(lay)
 
@@ -149,8 +148,7 @@ def sparkle_burst(img):
 def planets_small(img):
     """Маленькие планеты по углам — космический фон."""
     lay, d = layer(img)
-    for cx, cy, r, col in ((172, 214, 62, ACCENT), (1064, 852, 78, RING),
-                           (1108, 176, 44, GREEN)):
+    for cx, cy, r, col in ((158, 206, 52, ACCENT), (1092, 806, 58, RING)):
         d.ellipse(sbox([cx - r, cy - r, cx + r, cy + r]), fill=col + (255,))
         d.ellipse(sbox([cx - r * 1.7, cy - r * 0.42, cx + r * 1.7, cy + r * 0.42]),
                   outline=col + (170,), width=int(s(9)))
@@ -212,20 +210,18 @@ def cloud(img):
 def headphones(img):
     """Наушники: дуга через верхний луч и две чашки по бокам."""
     lay, d = layer(img)
-    d.arc(sbox([382, 236, 858, 712]), 198, 342, fill=METAL + (255,),
-          width=int(s(36)))
-    for ex in (396, 844):
-        d.rounded_rectangle(sbox([ex - 54, 398, ex + 54, 566]), radius=s(50),
-                            fill=METAL + (255,))
-        d.rounded_rectangle(sbox([ex - 34, 420, ex + 34, 544]), radius=s(32),
-                            fill=METAL_LIGHT + (255,))
+    d.arc(sbox([332, 218, 908, 794]), 202, 338, fill=METAL + (255,),
+          width=int(s(44)))
+    for ex in (344, 896):
+        d.ellipse(sbox([ex - 124, 418, ex + 124, 666]), fill=METAL + (255,))
+        d.ellipse(sbox([ex - 84, 458, ex + 84, 626]), fill=METAL_LIGHT + (255,))
     img.alpha_composite(lay)
 
 
 def music_notes(img):
     """Нотки рядом с головой."""
     lay, d = layer(img)
-    for nx, ny, k in ((968, 300, 1.0), (1080, 420, 0.8), (232, 360, 0.9)):
+    for nx, ny, k in ((1010, 296, 0.9), (232, 336, 0.8)):
         r = 34 * k
         d.ellipse(sbox([nx - r, ny - r * 0.8, nx + r, ny + r * 0.8]),
                   fill=ACCENT + (255,))
@@ -239,21 +235,21 @@ def music_notes(img):
 def nightcap(img):
     """Колпак для сна на верхнем луче."""
     lay, d = layer(img)
-    d.polygon([*sbox([498, 398]), *sbox([742, 398]), *sbox([796, 168])],
+    d.polygon([*sbox([466, 416]), *sbox([776, 416]), *sbox([828, 116])],
               fill=ACCENT + (255,))
-    d.rounded_rectangle(sbox([484, 368, 756, 436]), radius=s(34),
+    d.rounded_rectangle(sbox([450, 378, 792, 458]), radius=s(40),
                         fill=CLOUD + (255,))
-    d.ellipse(sbox([756, 122, 842, 208]), fill=CLOUD + (255,))
+    d.ellipse(sbox([786, 66, 884, 164]), fill=CLOUD + (255,))
     img.alpha_composite(lay)
 
 
 def beanie(img):
     """Шапочка — «стиль дня»."""
     lay, d = layer(img)
-    d.pieslice(sbox([474, 156, 766, 402]), 180, 360, fill=ACCENT + (255,))
-    d.rounded_rectangle(sbox([462, 326, 778, 386]), radius=s(28),
+    d.pieslice(sbox([458, 186, 782, 476]), 180, 360, fill=ACCENT + (255,))
+    d.rounded_rectangle(sbox([444, 392, 796, 462]), radius=s(34),
                         fill=RING + (255,))
-    d.ellipse(sbox([588, 108, 652, 172]), fill=RING + (255,))
+    d.ellipse(sbox([582, 138, 658, 214]), fill=RING + (255,))
     img.alpha_composite(lay)
 
 
