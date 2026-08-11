@@ -358,10 +358,13 @@ def draw_eyes(d, kind: str) -> None:
             continue
 
         w, h = (34, 50) if kind == "wide" else (29, 42)
-        d.rounded_rectangle(sbox([ex - w, EYE_CY - h, ex + w, EYE_CY + h]),
+        cy = EYE_CY
+        if kind == "up":                             # взгляд наверх: зрачки выше
+            w, h, cy = 29, 29, EYE_CY - 28
+        d.rounded_rectangle(sbox([ex - w, cy - h, ex + w, cy + h]),
                             radius=s(w), fill=EYE + (255,))
         gx = ex + (6 if i == 0 else -6)              # блик смотрит к переносице
-        gy = EYE_CY - h + 12
+        gy = cy - h + 12
         d.ellipse(sbox([gx, gy, gx + 22, gy + 24]), fill=(255, 255, 255, 255))
         if kind == "sparkle":                        # второй блик — «горят глаза»
             d.ellipse(sbox([gx - 12, gy + 40, gx - 1, gy + 52]),
@@ -400,6 +403,9 @@ def draw_mouth(d, kind: str) -> None:
         return
     if kind == "sad":
         stroke_arc(d, [592, 640, 664, 692], 205, 335, BROW, 12)
+        return
+    if kind == "think":                              # сжатые губы, сдвинуты вбок
+        stroke_arc(d, [618, 634, 692, 676], 24, 156, BROW, 12)
         return
     box = [584, 612, 672, 678] if kind == "wide" else [592, 616, 664, 672]
     stroke_arc(d, box, 25, 155, BROW, 12)

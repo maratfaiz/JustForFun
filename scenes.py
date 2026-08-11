@@ -187,14 +187,35 @@ def think_bubble(img):
     d.ellipse(sbox([812, 128, 1112, 368]), fill=CLOUD + (255,))
     d.ellipse(sbox([796, 386, 856, 446]), fill=CLOUD + (255,))
     d.ellipse(sbox([764, 462, 800, 498]), fill=CLOUD + (255,))
-    # в пузыре — знак вопроса: персонаж думает «а как у меня с этим?»
-    cs.stroke_arc(d, [906, 154, 1018, 266], 175, 20, ACCENT, 24)
-    d.line(sbox([1006, 226, 962, 274]), fill=ACCENT + (255,), width=int(s(24)))
-    d.ellipse(sbox([942, 296, 986, 340]), fill=ACCENT + (255,))
+    # в пузыре — многоточие: персонаж задумался
+    for k, dx in enumerate((-84, 0, 84)):
+        r = 26
+        d.ellipse(sbox([962 + dx - r, 248 - r, 962 + dx + r, 248 + r]),
+                  fill=ACCENT + (255 - k * 30,))
     img.alpha_composite(lay)
 
 
 # --- реквизит поверх персонажа (слой front) ----------------------------------
+
+
+HAND = (228, 166, 8)          # цвет кисти: тело + тон конечности
+
+
+def hands_over(img, dx=150, cy=792, r=48):
+    """Две «кисти» поверх предмета — предмет оказывается в руках, а не за ними."""
+    lay, d = layer(img)
+    for x in (cs.CX - dx, cs.CX + dx):
+        d.ellipse(sbox([x - r, cy - r * 0.86, x + r, cy + r * 0.86]),
+                  fill=HAND + (255,))
+    img.alpha_composite(lay)
+
+
+def hands_heart(img):
+    hands_over(img, dx=146, cy=798, r=50)
+
+
+def hands_notepad(img):
+    hands_over(img, dx=178, cy=838, r=46)
 
 
 def cloud(img):
@@ -409,7 +430,7 @@ SCENES: dict[str, dict] = {
                            props=("zzz",), back=[pillow], front=[nightcap]),
 
     # онбординг
-    "ob1": dict(pose="idle", face=F(eyes="wide", brows="raised", mouth="small"),
+    "ob1": dict(pose="idle", face=F(eyes="up", brows="raised", mouth="think"),
                 title="Онбординг 1: задумчивая", back=[think_bubble]),
     "ob2": dict(pose="idle", face=F(eyes="wide", brows="raised", mouth="small"),
                 title="Онбординг 2: вопрос", back=[big_question]),
@@ -418,17 +439,17 @@ SCENES: dict[str, dict] = {
                 back=[music_notes], front=[headphones]),
     "ob4": dict(pose="hold", face=F(eyes="closed", brows="none", mouth="smile"),
                 title="Онбординг 4: держит сердце", blush=210,
-                back=[hearts_around], front=[big_heart]),
+                front=[big_heart, hands_heart]),
 
     # упражнения
     "exercise-1": dict(pose="hug", face=F(brows="angry", mouth="sad"),
                        title="Упражнение: сердится"),
     "ex1": dict(pose="hold", face=F(mouth="smile"), title="С блокнотом",
-                front=[notepad]),
+                front=[notepad, hands_notepad]),
     "ex2": dict(pose="idle", face=F(brows="sad", mouth="sad"), title="Грустная",
                 props=("tear",)),
     "ex3": dict(pose="point", face=F(brows="raised", mouth="wide"),
-                title="Указывает", front=[point_lines]),
+                title="Указывает"),
     "ex4": dict(pose="idle", face=F(mouth="smile"), title="Шляпа журналиста",
                 front=[press_hat]),
     "ex5a": dict(pose="hold", face=F(mouth="smile"), title="Держит карточку",
@@ -445,7 +466,7 @@ SCENES: dict[str, dict] = {
                 title="С ракетой", back=[stars_around], front=[rocket]),
     "ex10": dict(pose="hold", face=F(eyes="closed", brows="none", mouth="smile"),
                  title="Держит сердце", blush=210,
-                 back=[hearts_around], front=[big_heart]),
+                 front=[big_heart, hands_heart]),
 
     # практики
     "breathcomplete": dict(pose="idle", face=F(eyes="sleepy", mouth="smile"),
