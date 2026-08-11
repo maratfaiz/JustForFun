@@ -179,10 +179,36 @@ LEG = (236, 176, 14)          # ноги светлее корпуса — не 
 
 
 def mat(img):
-    """Коврик под сидящим."""
+    """Подушка, на которой персонаж сидит: верх подушки заходит под ноги,
+    сверху ложится тень от фигуры — иначе он «висит» над ней."""
     lay, d = layer(img)
-    d.ellipse(sbox([352, 828, 888, 968]), fill=ACCENT + (255,))
-    d.ellipse(sbox([394, 848, 846, 940]), fill=RING + (255,))
+    d.ellipse(sbox([332, 790, 908, 952]), fill=ACCENT + (255,))
+    d.ellipse(sbox([374, 806, 866, 928]), fill=RING + (255,))
+    img.alpha_composite(lay)
+
+    soft(img, (86, 74, 178), 150,
+         lambda dd: dd.ellipse(sbox([420, 800, 820, 892]), fill=255), blur=s(18))
+
+
+def bed(img):
+    """Изголовье кровати и подушка за спиной."""
+    lay, d = layer(img)
+    d.rounded_rectangle(sbox([168, 372, 1072, 1064]), radius=s(76),
+                        fill=ACCENT + (255,))
+    d.rounded_rectangle(sbox([214, 432, 1026, 1012]), radius=s(56),
+                        fill=RING + (255,))
+    d.rounded_rectangle(sbox([286, 520, 954, 812]), radius=s(112),
+                        fill=CLOUD + (255,))
+    img.alpha_composite(lay)
+
+
+def blanket(img):
+    """Одеяло поверх нижней части тела."""
+    lay, d = layer(img)
+    d.rounded_rectangle(sbox([168, 848, 1072, 1110]), radius=s(64),
+                        fill=(150, 136, 244, 255))
+    d.rounded_rectangle(sbox([168, 848, 1072, 928]), radius=s(44),
+                        fill=CLOUD + (255,))
     img.alpha_composite(lay)
 
 
@@ -470,6 +496,11 @@ SCENES: dict[str, dict] = {
                                                     mouth="smile"),
                                title="Медитация завершена",
                                back=[mat], front=[lotus_legs]),
+
+    "sleeping": dict(pose="sit", face=F(eyes="sleepy", brows="normal",
+                                        mouth="small"),
+                     title="Дремлет в кровати", props=("zzz",),
+                     back=[bed], front=[blanket, nightcap]),
 
     # вспомогательные
     "home-wardrobe": dict(pose="idle", face=F(eyes="wink", mouth="wide"),
