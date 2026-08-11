@@ -76,8 +76,7 @@ def heart(d, cx, cy, size, color, alpha=255):
 def stars_around(img):
     """Звёздная россыпь вокруг персонажа."""
     lay, d = layer(img)
-    for cx, cy, size in ((198, 270, 28), (1046, 216, 32), (154, 560, 18),
-                         (1088, 540, 20), (846, 122, 22)):
+    for cx, cy, size in ((206, 286, 26), (1042, 224, 30), (1096, 596, 18)):
         star4(d, cx, cy, size, STAR_LIGHT)
     img.alpha_composite(lay)
 
@@ -119,19 +118,17 @@ def aura(img):
     soft(img, (255, 214, 96), 150,
          lambda d: d.ellipse(sbox([260, 210, 980, 930]), fill=255), blur=s(70))
     lay, d = layer(img)
-    for i in range(12):
-        a = math.radians(i * 30)
-        cx, cy = 620 + 430 * math.cos(a), 560 + 400 * math.sin(a)
-        star4(d, cx, cy, 16, STAR_LIGHT, 220)
+    for cx, cy, size, alpha in ((262, 300, 30, 235), (1002, 268, 24, 215),
+                                (1058, 664, 20, 200), (218, 690, 16, 190)):
+        star4(d, cx, cy, size, STAR_LIGHT, alpha)
     img.alpha_composite(lay)
 
 
 def hearts_around(img):
     """Сердечки вокруг персонажа — «любовь к себе»."""
     lay, d = layer(img)
-    ring = ((214, 372, 108), (1024, 330, 96), (168, 656, 74), (1080, 626, 82),
-            (350, 176, 68), (890, 148, 84), (404, 968, 64), (856, 990, 70),
-            (92, 476, 56), (1156, 468, 60))
+    ring = ((214, 352, 112), (1032, 300, 92), (150, 676, 68), (1096, 654, 78),
+            (376, 152, 62), (884, 176, 80), (438, 990, 58), (836, 966, 66))
     for i, (cx, cy, size) in enumerate(ring):
         color = RED if i % 2 == 0 else (255, 156, 176)
         heart(d, cx, cy, size, color, 255 if i % 2 == 0 else 225)
@@ -141,11 +138,10 @@ def hearts_around(img):
 def sparkle_burst(img):
     """Салют из искр — радость и восторг."""
     lay, d = layer(img)
-    for i in range(14):
-        a = math.radians(-90 + i * 360 / 14)
-        r = 430 + (60 if i % 2 else 0)
-        cx, cy = 620 + r * math.cos(a) * 1.05, 540 + r * math.sin(a) * 0.95
-        star4(d, cx, cy, 20 + 14 * (i % 3), STAR_LIGHT, 245)
+    for cx, cy, size in ((238, 262, 34), (1000, 232, 30), (156, 606, 22),
+                         (1082, 640, 26), (486, 128, 20), (818, 96, 26),
+                         (330, 918, 18)):
+        star4(d, cx, cy, size, STAR_LIGHT, 245)
     img.alpha_composite(lay)
 
 
@@ -227,8 +223,14 @@ def hands_notepad(img):
 
 
 def hands_clap(img):
-    """Сомкнутые ладони поверх корпуса — иначе они тонут в силуэте."""
-    hands_over(img, arm="clap")
+    """Ладони поверх корпуса, одна чуть выше другой — движение хлопка."""
+    dx, cy, w, h, tilt = cs.ARMS["clap"]
+    m = Image.new("L", img.size, 0)
+    cs.rotated_capsule(m, cs.CX - dx, cy - 22, w, h, -tilt - 10)
+    cs.rotated_capsule(m, cs.CX + dx, cy + 18, w, h, tilt + 10)
+    lay = Image.new("RGBA", img.size, HAND + (0,))
+    lay.putalpha(m)
+    img.alpha_composite(lay)
 
 
 def cloud(img):
@@ -399,9 +401,9 @@ def rocket(img):
 def clap_lines(img):
     """Дужки у сведённых ладоней — аплодисменты."""
     lay, d = layer(img)
-    for cx, a0, a1 in ((452, 132, 228), (788, 312, 48)):
-        for r in (58, 92):
-            d.arc(sbox([cx - r, 730 - r, cx + r, 730 + r]), a0, a1,
+    for cx, cy, a0, a1 in ((436, 706, 136, 224), (804, 748, 316, 44)):
+        for r in (52, 84):
+            d.arc(sbox([cx - r, cy - r, cx + r, cy + r]), a0, a1,
                   fill=cs.MOTION + (255,), width=int(s(14)))
     img.alpha_composite(lay)
 
