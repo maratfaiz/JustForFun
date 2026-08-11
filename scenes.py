@@ -144,14 +144,6 @@ def planets_small(img):
     img.alpha_composite(lay)
 
 
-def mat(img):
-    """Коврик-подушка под медитирующим."""
-    lay, d = layer(img)
-    d.ellipse(sbox([352, 828, 888, 968]), fill=ACCENT + (255,))
-    d.ellipse(sbox([394, 848, 846, 940]), fill=RING + (255,))
-    img.alpha_composite(lay)
-
-
 def big_question(img):
     """Крупный знак вопроса у головы."""
     lay, d = layer(img)
@@ -209,39 +201,6 @@ def hands_heart(img):
 
 def hands_notepad(img):
     hands_over(img)
-
-
-LEG = (236, 176, 14)          # ноги светлее
-ARM_TONE = (214, 152, 6)      # руки темнее — конечности не сливаются
-
-
-def lotus_pose(img):
-    """Поза лотоса: скрещённые ноги и руки, лежащие на коленях. Рисуем поверх
-    корпуса, иначе конечности тонут в силуэте."""
-    legs = Image.new("L", img.size, 0)
-    cs.rotated_capsule(legs, cs.CX - 66, 822, 168, 84, -10)
-    cs.rotated_capsule(legs, cs.CX + 66, 834, 168, 84, 10)
-    lay = Image.new("RGBA", img.size, LEG + (0,))
-    lay.putalpha(legs)
-    img.alpha_composite(lay)
-
-    # мягкая тень от корпуса на ноги — чтобы они не сливались с телом
-    edge = cs.star_mask(img.size).filter(ImageFilter.GaussianBlur(s(18)))
-    cs.tint(img, cs.LIMB_SHADE, 120, ImageChops.multiply(edge, legs))
-
-    arms = Image.new("L", img.size, 0)
-    cs.rotated_capsule(arms, cs.CX - 182, 754, 76, 126, -64)
-    cs.rotated_capsule(arms, cs.CX + 182, 754, 76, 126, 64)
-    lay = Image.new("RGBA", img.size, ARM_TONE + (0,))
-    lay.putalpha(arms)
-    img.alpha_composite(lay)
-    cs.tint(img, cs.LIMB_SHADE, 110,
-            ImageChops.multiply(edge, ImageChops.subtract(arms, legs)))
-
-    # тень от рук на ноги — руки лежат сверху, а не сливаются с ними
-    arm_edge = arms.filter(ImageFilter.GaussianBlur(s(14)))
-    cs.tint(img, cs.LIMB_SHADE, 120,
-            ImageChops.multiply(arm_edge, ImageChops.subtract(legs, arms)))
 
 
 def hands_clap(img):
@@ -510,15 +469,13 @@ SCENES: dict[str, dict] = {
                                                mouth="smile"), blush=210,
                            title="Аффирмации завершены",
                            back=[hearts_around]),
-    "meditation": dict(pose="lotus", face=F(eyes="sleepy", mouth="smile"),
-                       title="Медитация: лотос",
-                       back=[floating_stars, planets_small, mat],
-                       front=[lotus_pose]),
-    "meditationcomplete": dict(pose="lotus", face=F(eyes="closed", brows="none",
+    "meditation": dict(pose="float", face=F(eyes="sleepy", mouth="smile"),
+                       title="Медитация: парит",
+                       back=[floating_stars, planets_small]),
+    "meditationcomplete": dict(pose="float", face=F(eyes="closed", brows="none",
                                                     mouth="smile"),
                                title="Медитация завершена",
-                               back=[mat, stars_around],
-                               front=[lotus_pose]),
+                               back=[stars_around]),
 
     # вспомогательные
     "home-wardrobe": dict(pose="idle", face=F(eyes="wink", mouth="wide"),
