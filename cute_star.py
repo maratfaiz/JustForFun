@@ -219,7 +219,7 @@ ARM_UP = (259, 642, 76, 180, -50)        # та же «подмышка», чт�
 ARMS = {
     "down": ARM_DOWN,
     "up": ARM_UP,
-    "hold": (196, 690, 74, 156, 46),     # вперёд-внутрь: держит предмет
+    "hold": (150, 706, 74, 152, 58),     # вперёд-внутрь: держит предмет
     "point": (270, 646, 74, 176, -78),   # вбок, почти горизонтально
     "clap": (176, 676, 74, 150, 62),     # ладони сведены перед собой
     "hug": (186, 700, 74, 150, 54),      # обнимает — чуть ниже, чем hold
@@ -363,7 +363,7 @@ def draw_eyes(d, kind: str) -> None:
             w, h, cy = 29, 29, EYE_CY - 28
         d.rounded_rectangle(sbox([ex - w, cy - h, ex + w, cy + h]),
                             radius=s(w), fill=EYE + (255,))
-        gx = ex + (6 if i == 0 else -6)              # блик смотрит к переносице
+        gx = ex + 6 if i == 0 else ex - 28           # блик смотрит к переносице
         gy = cy - h + 12
         d.ellipse(sbox([gx, gy, gx + 22, gy + 24]), fill=(255, 255, 255, 255))
         if kind == "sparkle":                        # второй блик — «горят глаза»
@@ -405,7 +405,7 @@ def draw_mouth(d, kind: str) -> None:
         stroke_arc(d, [592, 640, 664, 692], 205, 335, BROW, 12)
         return
     if kind == "think":                              # сжатые губы, сдвинуты вбок
-        stroke_arc(d, [618, 634, 692, 676], 24, 156, BROW, 12)
+        stroke_arc(d, [590, 632, 664, 674], 24, 156, BROW, 12)
         return
     box = [584, 612, 672, 678] if kind == "wide" else [592, 616, 664, 672]
     stroke_arc(d, box, 25, 155, BROW, 12)

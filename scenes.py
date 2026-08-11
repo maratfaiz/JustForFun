@@ -201,21 +201,25 @@ def think_bubble(img):
 HAND = (228, 166, 8)          # цвет кисти: тело + тон конечности
 
 
-def hands_over(img, dx=150, cy=792, r=48):
-    """Две «кисти» поверх предмета — предмет оказывается в руках, а не за ними."""
-    lay, d = layer(img)
-    for x in (cs.CX - dx, cs.CX + dx):
-        d.ellipse(sbox([x - r, cy - r * 0.86, x + r, cy + r * 0.86]),
-                  fill=HAND + (255,))
+def hands_over(img, arm="hold", dy=0.0, spread=0.0):
+    """Руки целиком поверх предмета — он оказывается в руках, а не за ними.
+    Рисуем те же капсулы, что в силуэте, поэтому это читается как руки,
+    а не как отдельные «лапки»."""
+    dx, cy, w, h, tilt = cs.ARMS[arm]
+    m = Image.new("L", img.size, 0)
+    cs.rotated_capsule(m, cs.CX - dx - spread, cy + dy, w, h, -tilt)
+    cs.rotated_capsule(m, cs.CX + dx + spread, cy + dy, w, h, tilt)
+    lay = Image.new("RGBA", img.size, HAND + (0,))
+    lay.putalpha(m)
     img.alpha_composite(lay)
 
 
 def hands_heart(img):
-    hands_over(img, dx=146, cy=798, r=50)
+    hands_over(img)
 
 
 def hands_notepad(img):
-    hands_over(img, dx=178, cy=838, r=46)
+    hands_over(img, dy=44)
 
 
 def cloud(img):
@@ -323,27 +327,27 @@ def notepad(img):
 def card(img):
     """Карточка с текстом-заглушкой."""
     lay, d = layer(img)
-    d.rounded_rectangle(sbox([420, 636, 812, 880]), radius=s(28),
+    d.rounded_rectangle(sbox([436, 690, 804, 918]), radius=s(28),
                         fill=PAPER + (255,))
-    d.rounded_rectangle(sbox([420, 636, 812, 704]), radius=s(28),
+    d.rounded_rectangle(sbox([436, 690, 804, 754]), radius=s(28),
                         fill=ACCENT + (255,))
-    d.rectangle(sbox([420, 686, 812, 704]), fill=ACCENT + (255,))
-    for i, w in enumerate((300, 250, 200)):
-        d.rounded_rectangle(sbox([456, 736 + i * 44, 456 + w, 764 + i * 44]),
-                            radius=s(14), fill=PAPER_LINE + (255,))
+    d.rectangle(sbox([436, 736, 804, 754]), fill=ACCENT + (255,))
+    for i, w in enumerate((286, 236, 186)):
+        d.rounded_rectangle(sbox([470, 786 + i * 42, 470 + w, 812 + i * 42]),
+                            radius=s(13), fill=PAPER_LINE + (255,))
     img.alpha_composite(lay)
 
 
 def letter(img):
     """Конверт и перо — «письмо себе»."""
     lay, d = layer(img)
-    d.rounded_rectangle(sbox([436, 654, 800, 872]), radius=s(22),
+    d.rounded_rectangle(sbox([444, 700, 796, 908]), radius=s(22),
                         fill=PAPER + (255,))
-    d.polygon([*sbox([436, 668]), *sbox([618, 790]), *sbox([800, 668])],
+    d.polygon([*sbox([444, 714]), *sbox([620, 830]), *sbox([796, 714])],
               fill=CLOUD + (255,))
-    d.line(sbox([436, 668, 618, 790, 800, 668]), fill=PAPER_LINE + (255,),
+    d.line(sbox([444, 714, 620, 830, 796, 714]), fill=PAPER_LINE + (255,),
            width=int(s(8)), joint="curve")
-    heart(d, 618, 826, 64, RED)
+    heart(d, 620, 862, 60, RED)
     img.alpha_composite(lay)
 
 
@@ -453,7 +457,7 @@ SCENES: dict[str, dict] = {
     "ex4": dict(pose="idle", face=F(mouth="smile"), title="Шляпа журналиста",
                 front=[press_hat]),
     "ex5a": dict(pose="hold", face=F(mouth="smile"), title="Держит карточку",
-                 front=[card]),
+                 front=[card, hands_notepad]),
     "ex5b": dict(pose="idle", face=F(eyes="closed", brows="none", mouth="wide"),
                  title="Улыбается"),
     "ex6": dict(pose="hug", face=F(eyes="closed", brows="none", mouth="smile"),
@@ -461,7 +465,7 @@ SCENES: dict[str, dict] = {
     "ex7": dict(pose="clap", face=F(eyes="closed", brows="none", mouth="open"),
                 title="Аплодирует", back=[sparkle_burst], front=[clap_lines]),
     "ex8": dict(pose="hold", face=F(mouth="smile"), title="Пишет письмо",
-                front=[letter]),
+                front=[letter, hands_notepad]),
     "ex9": dict(pose="idle", face=F(eyes="sparkle", brows="raised", mouth="open"),
                 title="С ракетой", back=[stars_around], front=[rocket]),
     "ex10": dict(pose="hold", face=F(eyes="closed", brows="none", mouth="smile"),
