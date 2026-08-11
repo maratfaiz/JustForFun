@@ -214,20 +214,49 @@ ARM_DOWN = (218, 706, 76, 150, 10)       # dx, cy, w, h, наклон наруж
 ARM_UP = (259, 642, 76, 180, -50)        # та же «подмышка», что и у опущенной
                                          # руки, но капсула поднята вверх-вбок
 
+# Пресеты рук: dx от центра, cy, ширина, высота, наклон наружу (для правой;
+# левая зеркалит и знак наклона, и dx)
+ARMS = {
+    "down": ARM_DOWN,
+    "up": ARM_UP,
+    "hold": (196, 690, 74, 156, 46),     # вперёд-внутрь: держит предмет
+    "point": (270, 646, 74, 176, -78),   # вбок, почти горизонтально
+    "clap": (176, 676, 74, 150, 62),     # ладони сведены перед собой
+    "hug": (186, 700, 74, 150, 54),      # обнимает — чуть ниже, чем hold
+}
+
+# Поза = (левая рука, правая рука, ноги). Ноги: stand — как обычно,
+# sit — короче и разведены (персонаж сидит), none — не рисуются (лотос)
+POSES = {
+    "idle": ("down", "down", "stand"),
+    "wave": ("down", "up", "stand"),
+    "cheer": ("up", "up", "stand"),
+    "hold": ("hold", "hold", "stand"),
+    "point": ("down", "point", "stand"),
+    "clap": ("clap", "clap", "stand"),
+    "hug": ("hug", "hug", "stand"),
+    "sit": ("down", "down", "sit"),
+    "sit_hold": ("hug", "hug", "sit"),
+    "lotus": ("hold", "hold", "none"),
+}
+
 
 def limb_mask(size, pose: str = "idle") -> Image.Image:
     """Ручки-культяпки по бокам и две ножки снизу — отдельной маской,
     которая потом сливается с телом в один силуэт."""
+    left, right, legs = POSES.get(pose, POSES["idle"])
     m = Image.new("L", size, 0)
-    capsule(ImageDraw.Draw(m), CX - FOOT_DX, FOOT_CY, FOOT_W, FOOT_H, 255)
-    capsule(ImageDraw.Draw(m), CX + FOOT_DX, FOOT_CY, FOOT_W, FOOT_H, 255)
 
-    left = ARM_UP if pose == "cheer" else ARM_DOWN
-    right = ARM_UP if pose in ("wave", "cheer") else ARM_DOWN
+    if legs == "stand":
+        capsule(ImageDraw.Draw(m), CX - FOOT_DX, FOOT_CY, FOOT_W, FOOT_H, 255)
+        capsule(ImageDraw.Draw(m), CX + FOOT_DX, FOOT_CY, FOOT_W, FOOT_H, 255)
+    elif legs == "sit":                  # ножки свисают короче и шире
+        capsule(ImageDraw.Draw(m), CX - 128, FOOT_CY - 26, FOOT_W, 108, 255)
+        capsule(ImageDraw.Draw(m), CX + 128, FOOT_CY - 26, FOOT_W, 108, 255)
 
-    dx, cy, w, h, tilt = left
+    dx, cy, w, h, tilt = ARMS[left]
     rotated_capsule(m, CX - dx, cy, w, h, -tilt)
-    dx, cy, w, h, tilt = right
+    dx, cy, w, h, tilt = ARMS[right]
     rotated_capsule(m, CX + dx, cy, w, h, tilt)
     return m
 
@@ -531,15 +560,21 @@ def square_bbox(img: Image.Image, pad: float = 0.06) -> tuple[int, int, int, int
 def render(size: int = CANVAS, transparent: bool = False,
            shadow: bool = True, crop: bool = False,
            limb_tone: int = 110, limb_contact: int = 130,
-           pose: str = "idle", emotion: str | None = None) -> Image.Image:
+           pose: str = "idle", emotion: str | None = None,
+           face_override: dict | None = None, props: tuple = (),
+           motion: bool | None = None, back=(), front=()) -> Image.Image:
+    """back/front — функции рисования сцены: back вызывается до персонажа
+    (фон, планета, звёзды), front — после (аксессуары, предметы в руках).
+    Каждая получает холст в рабочем разрешении."""
     face = dict(eyes="open", brows="normal", mouth=None, blush=175)
-    props: tuple[str, ...] = ()
     if emotion:
         cfg = EMOTIONS[emotion]
         pose = cfg.get("pose", pose)
-        props = cfg.get("props", ())
+        props = props or cfg.get("props", ())
         face.update({k: cfg[k] for k in ("eyes", "brows", "mouth", "blush")
                      if k in cfg})
+    if face_override:
+        face.update(face_override)
 
     work = (CANVAS * SS, CANVAS * SS)
     img = Image.new("RGBA", work, BG + (0,))    # рисуем на прозрачном холсте,
@@ -550,13 +585,17 @@ def render(size: int = CANVAS, transparent: bool = False,
     mask = ImageChops.lighter(body, limbs)
     if shadow:
         draw_shadow(img)
+    for fn in back:
+        fn(img)
     draw_body(img, mask)
     draw_limb_depth(img, body, limbs, limb_tone, limb_contact)
     draw_face(img, mask, pose, **face)
-    if pose == "wave":
+    if motion if motion is not None else pose == "wave":
         draw_motion_lines(img)
     if props:
         draw_props(img, props)
+    for fn in front:
+        fn(img)
 
     if crop:
         img = img.crop(square_bbox(img))
@@ -585,8 +624,8 @@ def main() -> None:
                     help="без тени на полу")
     ap.add_argument("--limb-depth", choices=tuple(LIMB_DEPTH), default="medium",
                     help="насколько сильно руки-ноги отделяются от корпуса")
-    ap.add_argument("--pose", choices=("idle", "wave", "cheer"), default="idle",
-                    help="поза рук: стоит, машет, обе руки вверх")
+    ap.add_argument("--pose", choices=tuple(POSES), default="idle",
+                    help="поза рук и ног")
     ap.add_argument("--emotion", choices=tuple(EMOTIONS), default=None,
                     help="готовая эмоция (задаёт позу, лицо и реквизит)")
     args = ap.parse_args()
