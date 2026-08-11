@@ -187,7 +187,10 @@ def think_bubble(img):
     d.ellipse(sbox([812, 128, 1112, 368]), fill=CLOUD + (255,))
     d.ellipse(sbox([796, 386, 856, 446]), fill=CLOUD + (255,))
     d.ellipse(sbox([764, 462, 800, 498]), fill=CLOUD + (255,))
-    heart(d, 962, 246, 128, RED)
+    # в пузыре — знак вопроса: персонаж думает «а как у меня с этим?»
+    cs.stroke_arc(d, [906, 154, 1018, 266], 175, 20, ACCENT, 24)
+    d.line(sbox([1006, 226, 962, 274]), fill=ACCENT + (255,), width=int(s(24)))
+    d.ellipse(sbox([942, 296, 986, 340]), fill=ACCENT + (255,))
     img.alpha_composite(lay)
 
 
@@ -407,7 +410,7 @@ SCENES: dict[str, dict] = {
 
     # онбординг
     "ob1": dict(pose="idle", face=F(eyes="wide", brows="raised", mouth="small"),
-                title="Онбординг 1: задумчивая", back=[think_bubble, small_question]),
+                title="Онбординг 1: задумчивая", back=[think_bubble]),
     "ob2": dict(pose="idle", face=F(eyes="wide", brows="raised", mouth="small"),
                 title="Онбординг 2: вопрос", back=[big_question]),
     "ob3": dict(pose="idle", face=F(eyes="closed", brows="none", mouth="smile"),
