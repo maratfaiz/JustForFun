@@ -97,8 +97,8 @@ def planet(img):
     d.ellipse(sbox([cx - r, cy - r, cx + r, cy + r]), fill=PLANET + (255,))
     d.ellipse(sbox([cx - r + 40, cy - r + 30, cx + r - 40, cy + r]),
               fill=(140, 124, 246, 255))
-    for kx, ky, kr in ((404, 1012, 54), (782, 1064, 38), (612, 972, 28),
-                       (884, 986, 24)):
+    for kx, ky, kr in ((392, 1024, 82), (790, 1078, 60), (612, 968, 44),
+                       (900, 992, 38), (540, 1120, 52)):
         d.ellipse(sbox([kx - kr, ky - kr * 0.62, kx + kr, ky + kr * 0.62]),
                   fill=PLANET_DARK + (255,))
     img.alpha_composite(lay)
@@ -213,7 +213,7 @@ def cloud(img):
 def headphones(img):
     """Наушники: дуга через верхний луч и две чашки по бокам."""
     lay, d = layer(img)
-    d.arc(sbox([332, 218, 908, 794]), 202, 338, fill=METAL + (255,),
+    d.arc(sbox([344, 216, 896, 796]), 186, 354, fill=METAL + (255,),
           width=int(s(44)))
     for ex in (344, 896):
         d.ellipse(sbox([ex - 124, 418, ex + 124, 666]), fill=METAL + (255,))
@@ -238,11 +238,11 @@ def music_notes(img):
 def nightcap(img):
     """Колпак для сна на верхнем луче."""
     lay, d = layer(img)
-    d.polygon([*sbox([466, 416]), *sbox([776, 416]), *sbox([828, 116])],
+    d.polygon([*sbox([448, 428]), *sbox([792, 428]), *sbox([742, 122])],
               fill=ACCENT + (255,))
-    d.rounded_rectangle(sbox([450, 378, 792, 458]), radius=s(40),
+    d.rounded_rectangle(sbox([436, 388, 804, 468]), radius=s(40),
                         fill=CLOUD + (255,))
-    d.ellipse(sbox([786, 66, 884, 164]), fill=CLOUD + (255,))
+    d.ellipse(sbox([694, 62, 792, 160]), fill=CLOUD + (255,))
     img.alpha_composite(lay)
 
 
