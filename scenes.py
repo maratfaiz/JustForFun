@@ -73,24 +73,6 @@ def heart(d, cx, cy, size, color, alpha=255):
 # --- окружение (слой back) ---------------------------------------------------
 
 
-def stars_around(img):
-    """Звёздная россыпь вокруг персонажа."""
-    lay, d = layer(img)
-    for cx, cy, size in ((206, 286, 26), (1042, 224, 30), (1096, 596, 18)):
-        star4(d, cx, cy, size, STAR_LIGHT)
-    img.alpha_composite(lay)
-
-
-def floating_stars(img):
-    """Звёзды по кругу — «парят» вокруг медитирующего."""
-    lay, d = layer(img)
-    for i in range(8):
-        a = math.radians(-20 + i * 45)
-        cx, cy = 620 + 470 * math.cos(a), 540 + 400 * math.sin(a)
-        star4(d, cx, cy, 20 + 12 * (i % 3), STAR_LIGHT, 235)
-    img.alpha_composite(lay)
-
-
 def planet(img):
     """Планета под ногами: шар с кольцом. Заднюю дугу кольца рисуем до шара,
     переднюю — после, иначе кольцо читается как две отдельные линии."""
@@ -121,16 +103,6 @@ def hearts_around(img):
     for i, (cx, cy, size) in enumerate(ring):
         color = RED if i % 2 == 0 else (255, 156, 176)
         heart(d, cx, cy, size, color, 255 if i % 2 == 0 else 225)
-    img.alpha_composite(lay)
-
-
-def sparkle_burst(img):
-    """Салют из искр — радость и восторг."""
-    lay, d = layer(img)
-    for cx, cy, size in ((238, 262, 34), (1000, 232, 30), (156, 606, 22),
-                         (1082, 640, 26), (486, 128, 20), (818, 96, 26),
-                         (330, 918, 18)):
-        star4(d, cx, cy, size, STAR_LIGHT, 245)
     img.alpha_composite(lay)
 
 
@@ -385,8 +357,6 @@ def rocket(img):
     """Ракета рядом с персонажем."""
     lay, d = layer(img)
     cx = 962
-    for sx, sy, sz in ((cx, 940, 26), (cx - 40, 1010, 18), (cx + 44, 1002, 20)):
-        star4(d, sx, sy, sz, STAR_LIGHT, 220)
     d.polygon([*sbox([cx, 196]), *sbox([cx + 82, 360]), *sbox([cx - 82, 360])],
               fill=RED + (255,))
     d.rounded_rectangle(sbox([cx - 82, 332, cx + 82, 704]), radius=s(60),
@@ -432,16 +402,16 @@ def F(**kw):                     # короткая запись лица
 SCENES: dict[str, dict] = {
     # основные экраны
     "splash": dict(pose="sit", face=F(mouth="wide"), title="Сплэш: сидит на облаке",
-                   back=[stars_around, planets_small], front=[cloud], arm="wave"),
+                   back=[planets_small], front=[cloud], arm="wave"),
     "welcome": dict(pose="wave", face=F(mouth="wide"), title="Онбординг: приветствие",
-                    back=[planet, stars_around, planets_small]),
+                    back=[planet, planets_small]),
     "home": dict(pose="idle", face=F(eyes="closed", brows="none", mouth="smile"),
                  title="Главный экран: в наушниках",
                  back=[music_notes], front=[headphones]),
     "profile": dict(pose="idle", face=F(eyes="wink", mouth="wide"),
-                    title="Профиль: подмигивает", back=[planet, stars_around]),
+                    title="Профиль: подмигивает", back=[planet]),
     "obtrack": dict(pose="wave", face=F(mouth="wide"), title="План готов: с флагом",
-                    motion=False, back=[planet, stars_around], front=[flag]),
+                    motion=False, back=[planet], front=[flag]),
     "lessoncomplete": dict(pose="sit_hold", face=F(eyes="sleepy", mouth="small"),
                            title="Урок пройден: спит с подушкой",
                            props=("zzz",), back=[pillow], front=[nightcap]),
@@ -472,35 +442,34 @@ SCENES: dict[str, dict] = {
     "ex5a": dict(pose="hold", face=F(mouth="smile"), title="Держит карточку",
                  front=[card, hands_notepad]),
     "ex5b": dict(pose="idle", face=F(eyes="closed", brows="none", mouth="wide"),
-                 title="Улыбается", back=[stars_around]),
+                 title="Улыбается"),
     "ex6": dict(pose="hug", face=F(eyes="closed", brows="none", mouth="smile"),
                 title="Вокруг сердечки", back=[hearts_around], blush=215),
     "ex7": dict(pose="clap", face=F(eyes="closed", brows="none", mouth="open"),
-                title="Аплодирует", back=[sparkle_burst],
-                front=[hands_clap, clap_lines]),
+                title="Аплодирует", front=[hands_clap, clap_lines]),
     "ex8": dict(pose="hold", face=F(mouth="smile"), title="Пишет письмо",
                 front=[letter, hands_notepad]),
     "ex9": dict(pose="cheer", face=F(eyes="sparkle", brows="raised", mouth="open"),
-                title="С ракетой", back=[stars_around, rocket]),
+                title="С ракетой", back=[rocket]),
     "ex10": dict(pose="hold", face=F(eyes="closed", brows="none", mouth="smile"),
                  title="Держит сердце", blush=210,
                  front=[big_heart, hands_heart]),
 
     # практики
     "breathcomplete": dict(pose="idle", face=F(eyes="sleepy", mouth="smile"),
-                           title="Дыхание завершено", back=[stars_around]),
+                           title="Дыхание завершено"),
     "affirmcomplete": dict(pose="idle", face=F(eyes="closed", brows="none",
                                                mouth="smile"), blush=210,
                            title="Аффирмации завершены",
                            back=[hearts_around]),
     "meditation": dict(pose="lotus", face=F(eyes="sleepy", mouth="smile"),
                        title="Медитация: поза лотоса",
-                       back=[floating_stars, planets_small, mat],
+                       back=[planets_small, mat],
                        front=[lotus_legs]),
     "meditationcomplete": dict(pose="lotus", face=F(eyes="closed", brows="none",
                                                     mouth="smile"),
                                title="Медитация завершена",
-                               back=[stars_around, mat], front=[lotus_legs]),
+                               back=[mat], front=[lotus_legs]),
 
     # вспомогательные
     "home-wardrobe": dict(pose="idle", face=F(eyes="wink", mouth="wide"),
