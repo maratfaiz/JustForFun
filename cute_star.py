@@ -237,7 +237,8 @@ POSES = {
     "hug": ("hug", "hug", "stand"),
     "sit": ("down", "down", "sit"),
     "sit_hold": ("hug", "hug", "sit"),
-    "lotus": ("hold", "hold", "none"),
+    # в лотосе руки и ноги рисует сцена поверх корпуса, иначе они задвоятся
+    "lotus": (None, None, "none"),
 }
 
 
@@ -254,10 +255,12 @@ def limb_mask(size, pose: str = "idle") -> Image.Image:
         capsule(ImageDraw.Draw(m), CX - 128, FOOT_CY - 26, FOOT_W, 108, 255)
         capsule(ImageDraw.Draw(m), CX + 128, FOOT_CY - 26, FOOT_W, 108, 255)
 
-    dx, cy, w, h, tilt = ARMS[left]
-    rotated_capsule(m, CX - dx, cy, w, h, -tilt)
-    dx, cy, w, h, tilt = ARMS[right]
-    rotated_capsule(m, CX + dx, cy, w, h, tilt)
+    if left:
+        dx, cy, w, h, tilt = ARMS[left]
+        rotated_capsule(m, CX - dx, cy, w, h, -tilt)
+    if right:
+        dx, cy, w, h, tilt = ARMS[right]
+        rotated_capsule(m, CX + dx, cy, w, h, tilt)
     return m
 
 
