@@ -13,7 +13,7 @@ import argparse
 import math
 import os
 
-from PIL import Image, ImageDraw, ImageFilter
+from PIL import Image, ImageChops, ImageDraw, ImageFilter
 
 import cute_star as cs
 from cute_star import s, sbox
@@ -113,23 +113,6 @@ def planet(img):
 
 
 
-def calm_glow(img):
-    """Очень мягкий тёплый ореол — поддержка без пафоса."""
-    soft(img, (255, 222, 140), 95,
-         lambda d: d.ellipse(sbox([300, 250, 940, 890]), fill=255), blur=s(80))
-
-
-def aura(img):
-    """Тёплое сияние вокруг фигуры — «умиротворение»."""
-    soft(img, (255, 214, 96), 150,
-         lambda d: d.ellipse(sbox([260, 210, 980, 930]), fill=255), blur=s(70))
-    lay, d = layer(img)
-    for cx, cy, size, alpha in ((262, 300, 30, 235), (1002, 268, 24, 215),
-                                (1058, 664, 20, 200), (218, 690, 16, 190)):
-        star4(d, cx, cy, size, STAR_LIGHT, alpha)
-    img.alpha_composite(lay)
-
-
 def hearts_around(img):
     """Сердечки вокруг персонажа — «любовь к себе»."""
     lay, d = layer(img)
@@ -164,8 +147,8 @@ def planets_small(img):
 def mat(img):
     """Коврик-подушка под медитирующим."""
     lay, d = layer(img)
-    d.ellipse(sbox([392, 806, 848, 950]), fill=ACCENT + (255,))
-    d.ellipse(sbox([430, 826, 810, 920]), fill=RING + (255,))
+    d.ellipse(sbox([352, 828, 888, 968]), fill=ACCENT + (255,))
+    d.ellipse(sbox([394, 848, 846, 940]), fill=RING + (255,))
     img.alpha_composite(lay)
 
 
@@ -228,15 +211,37 @@ def hands_notepad(img):
     hands_over(img)
 
 
-def lotus_legs(img):
-    """Скрещённые ножки поверх корпуса — иначе поза лотоса читается как
-    «стоит за ковриком»."""
-    m = Image.new("L", img.size, 0)
-    cs.rotated_capsule(m, cs.CX - 62, 828, 108, 72, -16)
-    cs.rotated_capsule(m, cs.CX + 62, 838, 108, 72, 16)
-    lay = Image.new("RGBA", img.size, HAND + (0,))
-    lay.putalpha(m)
+LEG = (236, 176, 14)          # ноги светлее
+ARM_TONE = (214, 152, 6)      # руки темнее — конечности не сливаются
+
+
+def lotus_pose(img):
+    """Поза лотоса: скрещённые ноги и руки, лежащие на коленях. Рисуем поверх
+    корпуса, иначе конечности тонут в силуэте."""
+    legs = Image.new("L", img.size, 0)
+    cs.rotated_capsule(legs, cs.CX - 66, 822, 168, 84, -10)
+    cs.rotated_capsule(legs, cs.CX + 66, 834, 168, 84, 10)
+    lay = Image.new("RGBA", img.size, LEG + (0,))
+    lay.putalpha(legs)
     img.alpha_composite(lay)
+
+    # мягкая тень от корпуса на ноги — чтобы они не сливались с телом
+    edge = cs.star_mask(img.size).filter(ImageFilter.GaussianBlur(s(18)))
+    cs.tint(img, cs.LIMB_SHADE, 120, ImageChops.multiply(edge, legs))
+
+    arms = Image.new("L", img.size, 0)
+    cs.rotated_capsule(arms, cs.CX - 182, 754, 76, 126, -64)
+    cs.rotated_capsule(arms, cs.CX + 182, 754, 76, 126, 64)
+    lay = Image.new("RGBA", img.size, ARM_TONE + (0,))
+    lay.putalpha(arms)
+    img.alpha_composite(lay)
+    cs.tint(img, cs.LIMB_SHADE, 110,
+            ImageChops.multiply(edge, ImageChops.subtract(arms, legs)))
+
+    # тень от рук на ноги — руки лежат сверху, а не сливаются с ними
+    arm_edge = arms.filter(ImageFilter.GaussianBlur(s(14)))
+    cs.tint(img, cs.LIMB_SHADE, 120,
+            ImageChops.multiply(arm_edge, ImageChops.subtract(legs, arms)))
 
 
 def hands_clap(img):
@@ -500,26 +505,26 @@ SCENES: dict[str, dict] = {
 
     # практики
     "breathcomplete": dict(pose="idle", face=F(eyes="sleepy", mouth="smile"),
-                           title="Дыхание завершено", back=[aura]),
+                           title="Дыхание завершено", back=[stars_around]),
     "affirmcomplete": dict(pose="idle", face=F(eyes="closed", brows="none",
                                                mouth="smile"), blush=210,
                            title="Аффирмации завершены",
-                           back=[aura, hearts_around]),
+                           back=[hearts_around]),
     "meditation": dict(pose="lotus", face=F(eyes="sleepy", mouth="smile"),
                        title="Медитация: лотос",
                        back=[floating_stars, planets_small, mat],
-                       front=[lotus_legs]),
+                       front=[lotus_pose]),
     "meditationcomplete": dict(pose="lotus", face=F(eyes="closed", brows="none",
                                                     mouth="smile"),
-                               title="Медитация завершена", back=[aura, mat],
-                               front=[lotus_legs]),
+                               title="Медитация завершена",
+                               back=[mat, stars_around],
+                               front=[lotus_pose]),
 
     # вспомогательные
     "home-wardrobe": dict(pose="idle", face=F(eyes="wink", mouth="wide"),
                           title="Гардероб: стиль дня", front=[beanie]),
     "crisis": dict(pose="idle", face=F(eyes="sleepy", mouth="smile"),
-                   title="Кризисный экран: спокойная поддержка",
-                   back=[calm_glow]),
+                   title="Кризисный экран: спокойная поддержка"),
 }
 
 # алиасы: один файл переиспользуется на нескольких экранах
