@@ -123,6 +123,13 @@ def gloss(img, obj, spots, alpha=96, blur=10.0):
     img.alpha_composite(_tinted(g, (255, 255, 255), alpha))
 
 
+def _font(size_logical):
+    from PIL import ImageFont
+    return ImageFont.truetype(
+        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        int(s(size_logical)))
+
+
 def spark(d, cx, cy, r, v=255):
     k = r * 0.24
     d.polygon([s(cx), s(cy - r), s(cx + k), s(cy - k), s(cx + r), s(cy),
@@ -254,33 +261,56 @@ def item_crown():
 # --- секретные техники -------------------------------------------------------
 
 
-def item_selfhug():
-    """«Самообъятие»: сердце, которое обнимают."""
-    img = new_img()
-    heart, hd = mask()
+def _heart_mask(cx, cy, scale, n=140):
+    m, d = mask()
     pts = []
-    for i in range(140):
-        t = i * 2 * math.pi / 140
+    for i in range(n):
+        t = i * 2 * math.pi / n
         x = 16 * math.sin(t) ** 3
         y = (13 * math.cos(t) - 5 * math.cos(2 * t)
              - 2 * math.cos(3 * t) - math.cos(4 * t))
-        pts += [s(C + x * 9.6), s(250 - y * 9.6)]
-    hd.polygon(pts, fill=255)
+        pts += [s(cx + x * scale), s(cy - y * scale)]
+    d.polygon(pts, fill=255)
+    return m
+
+
+def item_selfhug():
+    """«Самообъятие»: руки скрещены на груди поверх сердца.
+
+    Сердце не «держат снизу» — руки идут снизу-снаружи к противоположному
+    плечу и перекрещиваются, как в настоящем самообъятии."""
+    img = new_img()
+    heart = _heart_mask(C, 232, 10.4)
     shade(img, heart, (255, 150, 168), RED_DK)
+    gloss(img, heart, [(194, 182, 50, 26, 32)], alpha=125, blur=7)
 
-    arms, ad = mask()
-    ad.line(sbox([70, 214, 74, 322, 176, 400, C - 12, 420]), fill=255,
-            width=int(s(50)), joint="curve")
-    ad.line(sbox([442, 214, 438, 322, 336, 400, C + 12, 420]), fill=255,
-            width=int(s(50)), joint="curve")
-    for x, y in ((70, 214), (442, 214)):
-        ad.ellipse(sbox([x - 25, y - 25, x + 25, y + 25]), fill=255)
-    for x in (C - 12, C + 12):
-        ad.ellipse(sbox([x - 25, 395, x + 25, 445]), fill=255)
-    shade(img, arms, GOLD, GOLD_DK)
+    def arm(pts, w=46.0):
+        """Рука обвивает сердце и заканчивается кистью.
 
-    gloss(img, heart, [(202, 200, 52, 26, 32)], alpha=125, blur=7)
-    gloss(img, arms, [(78, 250, 20, 44, 8)], alpha=100, blur=6)
+        Прямые длинные диагонали здесь не годятся: они выходят далеко за
+        силуэт и читаются как перечёркивание, а не объятие."""
+        m, d = mask()
+        d.line(sbox([v for p in pts for v in p]), fill=255,
+               width=int(s(w)), joint="curve")
+        d.ellipse(sbox([pts[0][0] - w / 2, pts[0][1] - w / 2,
+                        pts[0][0] + w / 2, pts[0][1] + w / 2]), fill=255)
+        hx, hy, hr = pts[-1][0], pts[-1][1], w * 0.62
+        d.ellipse(sbox([hx - hr, hy - hr, hx + hr, hy + hr]), fill=255)
+        return m
+
+    # Руки лежат поперёк самой широкой части сердца, а не под его нижним
+    # остриём: внизу они читаются как «держат снизу», а нужно объятие.
+    back = arm([(438, 206), (398, 268), (330, 300), (250, 292)])
+    front = arm([(74, 226), (114, 296), (192, 336), (282, 330)])
+    shade(img, back, GOLD_DK, (184, 118, 4))
+
+    sh = front.filter(ImageFilter.MaxFilter(9)).filter(
+        ImageFilter.GaussianBlur(s(7)))
+    sh = Image.composite(sh, Image.new("L", (N, N), 0), back)
+    img.alpha_composite(_tinted(sh, (124, 78, 2), 135))
+
+    shade(img, front, GOLD, GOLD_DK)
+    gloss(img, front, [(126, 296, 14, 34, 10)], alpha=105, blur=6)
     return img
 
 
@@ -343,21 +373,44 @@ def item_target():
         d.ellipse(sbox([C - r, C - r, C + r, C + r]), fill=255)
         shade(img, m, c0, c1)
 
+    # Стрела строится в осях самой стрелы: t — вдоль древка от наконечника
+    # к хвосту, off — поперёк. Иначе наконечник, древко и оперение не
+    # сходятся в одну линию и стрела выглядит приклеенной сверху.
+    tip = (C - 4, C - 4)
+    back = (0.784, -0.620)                     # от наконечника к хвосту
+    perp = (-back[1], back[0])
+
+    def P(t, off):
+        return (tip[0] + back[0] * t + perp[0] * off,
+                tip[1] + back[1] * t + perp[1] * off)
+
+    hole, hd = mask()                          # входное отверстие в мишени
+    hd.ellipse(sbox([C - 30, C - 30, C + 30, C + 30]), fill=255)
+    hole = hole.filter(ImageFilter.GaussianBlur(s(9)))
+    img.alpha_composite(_tinted(hole, (120, 28, 44), 120))
+
     shaft, sd = mask()
-    sd.line(sbox([C + 14, C - 14, 452, 92]), fill=255, width=int(s(22)))
-    shade(img, shaft, (216, 224, 246), METAL_DK)
-    fl, fd = mask()                            # оперение
-    for off in (0, 30):
-        fd.polygon([*sbox([402 + off, 142 - off]), *sbox([452 + off, 92 - off]),
-                    *sbox([452 + off, 148 - off])], fill=255)
-    shade(img, fl, (255, 170, 132), FLAME_DK)
+    a, b = P(46, 0), P(214, 0)
+    sd.line(sbox([*a, *b]), fill=255, width=int(s(19)))
+    shade(img, shaft, (228, 234, 250), METAL_DK)
 
-    head, hd = mask()
-    hd.polygon([*sbox([C - 34, C + 34]), *sbox([C + 34, C - 34]),
-                *sbox([C + 14, C - 54]), *sbox([C - 54, C + 14])], fill=255)
-    shade(img, head, GOLD, GOLD_DK)
+    fl, fd = mask()                            # оперение у хвоста
+    for sgn in (1, -1):
+        fd.polygon([*sbox([*P(148, 9 * sgn)]), *sbox([*P(222, 9 * sgn)]),
+                    *sbox([*P(206, 58 * sgn)])], fill=255)
+    shade(img, fl, (255, 176, 138), FLAME_DK)
+    nock, nd = mask()
+    nd.ellipse(sbox([P(220, 0)[0] - 13, P(220, 0)[1] - 13,
+                     P(220, 0)[0] + 13, P(220, 0)[1] + 13]), fill=255)
+    shade(img, nock, METAL, METAL_DK)
 
-    gloss(img, head, [(C - 22, C - 16, 26, 12, 45)], alpha=130, blur=5)
+    head, hhd = mask()                         # наконечник
+    hhd.polygon([*sbox([*P(0, 0)]), *sbox([*P(62, 25)]), *sbox([*P(50, 0)]),
+                 *sbox([*P(62, -25)])], fill=255)
+    shade(img, head, (255, 238, 168), GOLD_DK)
+
+    gloss(img, head, [(*P(30, -9), 22, 9, 38)], alpha=140, blur=4)
+    gloss(img, shaft, [(*P(120, -5), 60, 5, -38)], alpha=120, blur=4)
     return img
 
 
@@ -365,52 +418,50 @@ def item_target():
 
 
 def item_freeze():
-    """Заморозка серии: огонёк серии внутри ледяного кристалла.
+    """Заморозка серии: объёмная снежинка-кристалл.
 
-    Уют и защита, а не холод: пламя внутри живое и тёплое, лёд —
-    прозрачный светлый, без синевы «морозилки»."""
+    Уют и защита, а не холод: светлая, почти белая, с тёплым сиреневым
+    отливом в тени — не синева «морозилки»."""
     img = new_img()
-    flame, fd = mask()
-    fd.polygon([*sbox([C + 14, 148]), *sbox([C + 60, 240]),
-                *sbox([C + 78, 308]), *sbox([C + 52, 380]),
-                *sbox([C - 6, 410]), *sbox([C - 64, 372]),
-                *sbox([C - 70, 296]), *sbox([C - 28, 232])], fill=255)
-    shade(img, flame, (255, 196, 96), FLAME_DK)
-    core, kd = mask()
-    kd.polygon([*sbox([C + 4, 236]), *sbox([C + 34, 306]), *sbox([C + 20, 366]),
-                *sbox([C - 22, 372]), *sbox([C - 38, 314]),
-                *sbox([C - 8, 268])], fill=255)
-    flat(img, core, (255, 240, 176), 210)
+    arm, w = 194.0, 30.0
+    flake, d = mask()
+    for k in range(6):
+        a = math.radians(k * 60)
+        ux, uy = math.cos(a), math.sin(a)
+        d.line(sbox([C, C, C + ux * arm, C + uy * arm]), fill=255,
+               width=int(s(w)))
+        tx, ty = C + ux * arm, C + uy * arm     # ромбовидный наконечник
+        px, py = -uy, ux
+        d.polygon([*sbox([tx + ux * 30, ty + uy * 30]),
+                   *sbox([tx + px * 26, ty + py * 26]),
+                   *sbox([tx - ux * 26, ty - uy * 26]),
+                   *sbox([tx - px * 26, ty - py * 26])], fill=255)
+        for frac, blen, bw in ((0.44, 76.0, 26.0), (0.72, 56.0, 22.0)):
+            bx, by = C + ux * arm * frac, C + uy * arm * frac
+            for side in (+46, -46):
+                t = math.radians(k * 60 + side)
+                ex, ey = bx + math.cos(t) * blen, by + math.sin(t) * blen
+                d.line(sbox([bx, by, ex, ey]), fill=255, width=int(s(bw)))
+                d.ellipse(sbox([ex - bw / 2, ey - bw / 2,
+                                ex + bw / 2, ey + bw / 2]), fill=255)
 
-    crystal, cd = mask()
-    cd.polygon([*sbox([C, 66]), *sbox([428, 200]), *sbox([394, 402]),
-                *sbox([C, 462]), *sbox([118, 402]), *sbox([84, 200])],
-               fill=255)
-    # лёд полупрозрачный — сквозь него должен читаться огонёк серии
-    ice = new_img()
-    shade(ice, crystal, (236, 250, 255), ICE_DK)
-    ice.putalpha(Image.eval(ice.getchannel("A"), lambda a: a * 42 // 100))
-    img.alpha_composite(ice)
+    hexes = [(C + 66 * math.cos(math.radians(k * 60 + 30)),
+              C + 66 * math.sin(math.radians(k * 60 + 30))) for k in range(6)]
+    d.polygon([v for p in hexes for v in sbox(list(p))], fill=255)
+    shade(img, flake, (255, 255, 255), ICE_DK)
 
-    warm = new_img()                            # лёд обесцвечивает пламя —
-    shade(warm, flame, (255, 190, 96), FLAME_DK)   # возвращаем ему тепло
-    warm.putalpha(Image.eval(warm.getchannel("A"), lambda a: a * 40 // 100))
-    img.alpha_composite(warm)
-
-    edge, ed = mask()                           # рёбра кристалла
-    ed.line(sbox([C, 66, 428, 200, 394, 402, C, 462, 118, 402, 84, 200, C, 66]),
-            fill=255, width=int(s(16)), joint="curve")
-    ed.line(sbox([C, 66, C, 462]), fill=255, width=int(s(8)))
-    ed.line(sbox([84, 200, 428, 200]), fill=255, width=int(s(8)))
-    edge = Image.composite(edge, Image.new("L", (N, N), 0), crystal)
-    shade(img, edge, (255, 255, 255), ICE)
+    core, cd = mask()                           # светлая сердцевина
+    small = [(C + 40 * math.cos(math.radians(k * 60 + 30)),
+              C + 40 * math.sin(math.radians(k * 60 + 30))) for k in range(6)]
+    cd.polygon([v for p in small for v in sbox(list(p))], fill=255)
+    shade(img, core, (255, 255, 255), (206, 230, 252))
 
     st, sd = mask()
-    spark(sd, 132, 132, 30)
-    spark(sd, 410, 124, 22)
-    spark(sd, 402, 440, 20)
-    flat(img, st, (255, 255, 255), 235)
-    gloss(img, crystal, [(178, 168, 76, 26, 40)], alpha=120, blur=8)
+    spark(sd, 96, 116, 28)
+    spark(sd, 420, 140, 20)
+    spark(sd, 404, 416, 24)
+    flat(img, st, (226, 236, 255), 240)
+    gloss(img, flake, [(178, 176, 70, 24, 42)], alpha=125, blur=8)
     return img
 
 
@@ -430,17 +481,19 @@ def item_plus():
     band = Image.composite(band, Image.new("L", (N, N), 0), ticket)
     shade(img, band, VIOLET, VIOLET_DK)
 
-    glyph, gd = mask()
-    gd.rounded_rectangle(sbox([166, 250, 194, 326]), radius=s(14), fill=255)
-    gd.rounded_rectangle(sbox([142, 274, 218, 302]), radius=s(14), fill=255)
-    gd.rounded_rectangle(sbox([292, 238, 320, 338]), radius=s(14), fill=255)
-    gd.line(sbox([266, 268, 298, 242]), fill=255, width=int(s(26)))
-    gd.rounded_rectangle(sbox([258, 324, 354, 338]), radius=s(7), fill=255)
-    shade(img, glyph, (255, 150, 108), FLAME_DK)
+    perf, pd = mask()                           # линия отрыва
+    for y in range(214, 366, 26):
+        pd.rounded_rectangle(sbox([352, y, 362, y + 14]), radius=s(5), fill=255)
+    flat(img, perf, GOLD_DK, 150)
+
+    glyph, gd = mask()                          # «+1» шрифтом, а не палками
+    gd.text((s(226), s(292)), "+1", font=_font(122), fill=255, anchor="mm")
+    shade(img, glyph, (255, 154, 110), FLAME_DK)
 
     st, sd = mask()
-    spark(sd, 392, 122, 32)
-    spark(sd, 108, 404, 22)
+    spark(sd, 398, 288, 30)
+    spark(sd, 396, 226, 16)
+    spark(sd, 104, 400, 22)
     flat(img, st, GOLD, 245)
     gloss(img, ticket, [(160, 200, 96, 18, 10)], alpha=110, blur=8)
     return img
@@ -450,32 +503,42 @@ def item_hint():
     """Подсказка в уроке: лампочка с искоркой."""
     img = new_img()
     glass, gd = mask()
-    gd.ellipse(sbox([C - 118, 92, C + 118, 328]), fill=255)
-    gd.polygon([*sbox([C - 62, 288]), *sbox([C + 62, 288]),
-                *sbox([C + 48, 358]), *sbox([C - 48, 358])], fill=255)
-    shade(img, glass, (255, 250, 206), GOLD)
+    gd.ellipse(sbox([C - 116, 84, C + 116, 316]), fill=255)
+    gd.polygon([*sbox([C - 68, 258]), *sbox([C + 68, 258]),
+                *sbox([C + 46, 344]), *sbox([C - 46, 344])], fill=255)
+    shade(img, glass, (255, 252, 214), GOLD)
 
+    # нить накала: две ножки и зигзаг между ними — узнаваемее,
+    # чем прежняя дуга с перекладиной, которая читалась как значок
     fil, fdw = mask()
-    fdw.arc(sbox([C - 40, 156, C + 40, 228]), 200, 340, fill=255,
-            width=int(s(14)))
-    fdw.line(sbox([C, 200, C, 268]), fill=255, width=int(s(14)))
-    fdw.line(sbox([C - 34, 268, C + 34, 268]), fill=255, width=int(s(14)))
-    shade(img, fil, GOLD_DK, (186, 122, 6))
+    fdw.line(sbox([C - 30, 268, C - 30, 214]), fill=255, width=int(s(11)))
+    fdw.line(sbox([C + 30, 268, C + 30, 214]), fill=255, width=int(s(11)))
+    fdw.line(sbox([C - 30, 214, C - 14, 176, C, 214, C + 14, 176, C + 30, 214]),
+             fill=255, width=int(s(11)), joint="curve")
+    shade(img, fil, GOLD_DK, (182, 118, 4))
 
-    cap, cd = mask()
-    cd.rounded_rectangle(sbox([C - 52, 352, C + 52, 400]), radius=s(18),
-                         fill=255)
-    cd.rounded_rectangle(sbox([C - 40, 410, C + 40, 452]), radius=s(19),
-                         fill=255)
+    cap, cd = mask()                            # цоколь с резьбой
+    cd.polygon([*sbox([C - 48, 340]), *sbox([C + 48, 340]),
+                *sbox([C + 42, 420]), *sbox([C - 42, 420])], fill=255)
     shade(img, cap, METAL, METAL_DK)
+    ridge, rd = mask()
+    for y in (360, 386):
+        rd.rounded_rectangle(sbox([C - 47, y, C + 47, y + 9]), radius=s(4),
+                             fill=255)
+    ridge = Image.composite(ridge, Image.new("L", (N, N), 0), cap)
+    flat(img, ridge, METAL_DK, 190)
+    tipm, td = mask()
+    td.rounded_rectangle(sbox([C - 26, 420, C + 26, 452]), radius=s(14),
+                         fill=255)
+    shade(img, tipm, METAL_DK, INK)
 
     st, sd = mask()
-    spark(sd, 96, 148, 32)
-    spark(sd, 424, 186, 24)
-    spark(sd, 402, 82, 18)
+    spark(sd, 92, 140, 30)
+    spark(sd, 428, 178, 24)
+    spark(sd, 398, 76, 17)
     flat(img, st, (255, 236, 150), 245)
-    gloss(img, glass, [(C - 56, 152, 40, 22, 38)], alpha=150, blur=6)
-    gloss(img, cap, [(C - 40, 366, 16, 8, 20)], alpha=90, blur=4)
+    gloss(img, glass, [(C - 54, 146, 38, 21, 38)], alpha=155, blur=6)
+    gloss(img, cap, [(C - 36, 356, 12, 26, 4)], alpha=90, blur=4)
     return img
 
 
